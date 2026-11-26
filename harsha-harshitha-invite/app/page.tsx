@@ -1,24 +1,348 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 import {
   MapPin,
-  Calendar,
   Clock,
   Languages,
   Heart,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Sparkles,
   X,
   ExternalLink,
+  CalendarPlus,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 
 const emptySubscribe = () => () => {};
 
+interface WishItem {
+  id: string;
+  name: string;
+  relation: string;
+  tag: string;
+  message: string;
+  likes: number;
+  createdAt: string;
+  isCustom?: boolean;
+}
+
+const VENUE_LOCATION =
+  "S.V. Convention Centre, No. 37/1, NICE Road Junction, Kanakapura Main Road, Behind KSSRDI, Talaghattapura, Bengaluru - 560109";
+
+const createUniqueId = (prefix: string) => {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return `${prefix}-${crypto.randomUUID()}`;
+  }
+  return `${prefix}-${Date.now()}`;
+};
+
+const getGoogleCalendarUrl = (event: {
+  title: string;
+  details: string;
+  location: string;
+  start: string;
+  end: string;
+}) => {
+  const url = new URL("https://calendar.google.com/calendar/render");
+  url.searchParams.set("action", "TEMPLATE");
+  url.searchParams.set("text", event.title);
+  url.searchParams.set("dates", `${event.start}/${event.end}`);
+  url.searchParams.set("details", event.details);
+  url.searchParams.set("location", event.location);
+  url.searchParams.set("ctz", "Asia/Kolkata");
+  return url.toString();
+};
+
+const initialWishes: WishItem[] = [
+  {
+    id: "wish-1",
+    name: "Kiran & Priya",
+    relation: "Family",
+    tag: "🌸 Shubh Vivah",
+    message:
+      "Wishing Harsha and Harshitha a lifetime of boundless laughter, harmony, and togetherness! Cannot wait to celebrate with you both!",
+    likes: 14,
+    createdAt: "Yesterday",
+  },
+  {
+    id: "wish-2",
+    name: "ರಾಘವೇಂದ್ರ & ಕುಟುಂಬ",
+    relation: "ಕುಟುಂಬಸ್ಥರು",
+    tag: "✨ ದೈವಿಕ ಆಶೀರ್ವಾದ",
+    message:
+      "ಹರ್ಷ ಮತ್ತು ಹರ್ಷಿತಾ ಅವರಿಗೆ ಶ್ರೀ ಗಿರಿಪುರ ಆಂಜನೇಯ ಸ್ವಾಮಿ ಹಾಗೂ ಶ್ರೀ ಜಿನ್ನಗರದಮ್ಮ ದೇವಿಯ ಕೃಪೆಯಿರಲಿ. ನಿಮ್ಮ ದಾಂಪತ್ಯ ಜೀವನ ಸದಾ ಸುಖಮಯವಾಗಿರಲಿ!",
+    likes: 21,
+    createdAt: "2 days ago",
+  },
+  {
+    id: "wish-3",
+    name: "Sandeep & College Gang",
+    relation: "Friends of Groom",
+    tag: "🎉 Cheers & Celebrations",
+    message:
+      "From college hostel night-outs to the big wedding stage! So immensely proud and happy for you Harsha brother, and a warm welcome to Harshitha!",
+    likes: 18,
+    createdAt: "3 days ago",
+  },
+  {
+    id: "wish-4",
+    name: "ಅನಿತಾ & ತಂಡ",
+    relation: "ವಧುವಿನ ಸ್ನೇಹಿತರು",
+    tag: "💖 ಪ್ರೀತಿಯ ಹಾರೈಕೆ",
+    message:
+      "ನಮ್ಮ ಪ್ರೀತಿಯ ಹರ್ಷಿತಾಳಿಗೆ ಅತ್ಯಂತ ಸಂತೋಷದ ಶುಭ ಹಾರೈಕೆಗಳು! ನೀವು ಇಬ್ಬರೂ ಒಬ್ಬರಿಗೊಬ್ಬರು ಅತ್ಯಂತ ಹೊಂದಾಣಿಕೆಯ ಸುಂದರ ಜೋಡಿ.",
+    likes: 16,
+    createdAt: "4 days ago",
+  },
+];
+
+function GoldTeardrop({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 32"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      aria-hidden="true"
+    >
+      <path
+        d="M12 2 C12 2, 3 14, 3 20 C3 25 7 29 12 29 C17 29 21 25 21 20 C21 14, 12 2, 12 2 Z"
+        fill="url(#goldTearGrad)"
+      />
+      <defs>
+        <linearGradient
+          id="goldTearGrad"
+          x1="5"
+          y1="2"
+          x2="19"
+          y2="29"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop stopColor="#F5E3B3" />
+          <stop offset="0.5" stopColor="#D4AF37" />
+          <stop offset="1" stopColor="#AA771C" />
+        </linearGradient>
+      </defs>
+    </svg>
+  );
+}
+
+function GoldScratchCard({
+  title,
+  date,
+  time,
+  bottomHint,
+  isRevealedText,
+  isKannada = false,
+}: {
+  title: string;
+  date: string;
+  time: string;
+  bottomHint: string;
+  isRevealedText: string;
+  isKannada?: boolean;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [isScratched, setIsScratched] = useState(false);
+  const isDrawingRef = useRef(false);
+  const scratchCountRef = useRef(0);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const width = canvas.width;
+    const height = canvas.height;
+
+    // Subtle, Classy Champagne Gold Foil Gradient (Muted luxury satin, not brassy yellow)
+    const gradient = ctx.createLinearGradient(0, 0, width, height);
+    gradient.addColorStop(0, "#C8B08A");
+    gradient.addColorStop(0.25, "#EFE6D5");
+    gradient.addColorStop(0.5, "#BFA175");
+    gradient.addColorStop(0.75, "#D8C7AA");
+    gradient.addColorStop(1, "#9C7E52");
+
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, width, height);
+
+    // Subtle, gentle satin texture noise
+    ctx.fillStyle = "rgba(255, 255, 255, 0.18)";
+    for (let i = 0; i < 160; i++) {
+      const rx = (Math.sin(i * 71) * 0.5 + 0.5) * width;
+      const ry = (Math.cos(i * 37) * 0.5 + 0.5) * height;
+      ctx.fillRect(rx, ry, 1.5, 1.5);
+    }
+
+    // Classy fine double border
+    ctx.strokeStyle = "rgba(252, 245, 232, 0.85)";
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(10, 10, width - 20, height - 20);
+
+    ctx.strokeStyle = "rgba(130, 100, 65, 0.25)";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(14, 14, width - 28, height - 28);
+
+    // Helper to draw delicate diamond shape beside text
+    const drawDiamond = (cx: number, cy: number, r: number) => {
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - r);
+      ctx.lineTo(cx + r * 0.7, cy);
+      ctx.lineTo(cx, cy + r);
+      ctx.lineTo(cx - r * 0.7, cy);
+      ctx.closePath();
+      ctx.fillStyle = "#5A3810";
+      ctx.fill();
+      ctx.restore();
+    };
+
+    // Card Text in Richer, Darker Antique Bronze Gold with Italic Script Style
+    ctx.save();
+    ctx.shadowColor = "rgba(255, 248, 230, 0.4)";
+    ctx.shadowBlur = 2;
+    ctx.shadowOffsetY = 1;
+
+    ctx.fillStyle = "#4A2F0F";
+    ctx.font = "italic 24px 'Great Vibes', cursive, 'Playfair Display', serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("Scratch to Reveal", width / 2, height / 2 - 12);
+
+    // Diamonds on left and right of "Scratch to Reveal"
+    drawDiamond(width / 2 - 112, height / 2 - 12, 6);
+    drawDiamond(width / 2 + 112, height / 2 - 12, 6);
+
+    ctx.fillStyle = "#5E3D15";
+    ctx.font = "italic 14px 'Playfair Display', serif";
+    ctx.fillText(title, width / 2, height / 2 + 18);
+    ctx.restore();
+  }, [title]);
+
+  const handlePointer = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (isScratched) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
+
+    ctx.globalCompositeOperation = "destination-out";
+    ctx.beginPath();
+    ctx.arc(x, y, 28, 0, Math.PI * 2);
+    ctx.fill();
+
+    scratchCountRef.current += 1;
+    if (scratchCountRef.current > 38 && !isScratched) {
+      setIsScratched(true);
+    }
+  };
+
+  return (
+    <div className="flex flex-col items-center w-full max-w-sm mx-auto">
+      {/* The Interactive Scratch Card with Soft Gold Shadow & White/Beige Card */}
+      <div
+        className={`relative w-full h-72 sm:h-80 rounded-3xl overflow-hidden select-none transition-all duration-700 ease-out ${
+          isScratched
+            ? "shadow-[0_18px_50px_rgba(201,147,43,0.32)] border-2 border-[#D4AF37] scale-[1.02] bg-[#FCFAF6] text-[#2B1B17]"
+            : "shadow-[0_12px_40px_rgba(201,147,43,0.22)] border-2 border-[#E2C799]/50 bg-[#FCFAF6] text-[#2B1B17]"
+        }`}
+      >
+        {/* UNDERNEATH REVEALED CONTENT (White/Beige card, no calendar icon, no 'The Date', no venue) */}
+        <div className="absolute inset-0 p-6 sm:p-8 flex flex-col justify-center text-center items-center z-0 space-y-3">
+          <div>
+            <h4 className="font-serif text-2xl sm:text-3xl font-bold text-neutral-900 tracking-wide">
+              {title}
+            </h4>
+            <div className="h-[1px] w-16 bg-[#C9932B]/40 mx-auto my-3" />
+
+            {/* Date in Gold Italic Script (similar to bride & groom names) */}
+            <p
+              className={`font-script text-3xl sm:text-4xl text-[#A6781D] font-normal leading-tight drop-shadow-sm ${
+                isKannada
+                  ? "font-serif italic font-bold text-xl sm:text-2xl"
+                  : ""
+              }`}
+            >
+              {date}
+            </p>
+
+            <p className="text-xs sm:text-sm text-neutral-600 mt-2 flex items-center justify-center gap-1.5 font-medium">
+              <Clock size={14} className="text-[#C9932B]" />
+              <span>{time}</span>
+            </p>
+          </div>
+        </div>
+
+        {/* ELEGANT GOLDEN LIGHT SHEEN & AURA SWEEP ON REVEAL */}
+        {isScratched && (
+          <div className="absolute inset-0 pointer-events-none z-20 overflow-hidden transition-opacity duration-1000">
+            {/* Soft Ambient Golden Halo Bloom */}
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(252,224,139,0.25)_0%,transparent_70%)] animate-pulse" />
+            {/* Diagonal Golden Light Sheen sweep across card */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-200/35 to-transparent -skew-x-12 animate-[shimmer_1.5s_ease-out_forwards]" />
+            {/* Delicate Micro-Glimmers */}
+            <span className="absolute top-4 right-6 text-[#C9932B] text-xs opacity-75 animate-pulse">✦</span>
+            <span className="absolute bottom-5 left-6 text-[#C9932B] text-xs opacity-75 animate-pulse">✦</span>
+            <span className="absolute top-1/2 left-4 text-[#D4AF37] text-[10px] opacity-60 animate-ping">✧</span>
+            <span className="absolute top-1/3 right-5 text-[#D4AF37] text-[10px] opacity-60 animate-ping">✧</span>
+          </div>
+        )}
+
+        {/* TOP CLASSY SUBTLE GOLD SCRATCH CANVAS LAYER */}
+        <canvas
+          ref={canvasRef}
+          width={360}
+          height={320}
+          onPointerDown={(e) => {
+            isDrawingRef.current = true;
+            handlePointer(e);
+          }}
+          onPointerMove={(e) => {
+            if (isDrawingRef.current) handlePointer(e);
+          }}
+          onPointerUp={() => {
+            isDrawingRef.current = false;
+          }}
+          onPointerLeave={() => {
+            isDrawingRef.current = false;
+          }}
+          className={`absolute inset-0 w-full h-full z-10 transition-opacity duration-700 touch-none cursor-crosshair ${
+            isScratched ? "opacity-0 pointer-events-none" : "opacity-100"
+          }`}
+        />
+      </div>
+
+      {/* BELOW THE CARD: "SWIPE YOUR FINGER ACROSS THE GOLD" / "SEE YOU THERE ✨" */}
+      <div className="mt-3.5 flex flex-col items-center text-center">
+        <p className="font-sans font-light tracking-[0.2em] text-[11px] sm:text-xs text-neutral-600 uppercase">
+          {isScratched ? isRevealedText : bottomHint}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   const [lang, setLang] = useState<"en" | "kn">("en");
+  const [isOpened, setIsOpened] = useState(false);
+  const [isRevealing, setIsRevealing] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [activeSlide, setActiveSlide] = useState(0);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const isMounted = useSyncExternalStore(
     emptySubscribe,
     () => true,
@@ -38,6 +362,14 @@ export default function Home() {
     seconds: 0,
     isFinished: false,
   });
+
+  // Wishes Wall State
+  const [wishesList, setWishesList] = useState<WishItem[]>(initialWishes);
+  const [newWishName, setNewWishName] = useState("");
+  const [newWishRelation, setNewWishRelation] = useState("");
+  const [newWishTag, setNewWishTag] = useState("");
+  const [newWishMessage, setNewWishMessage] = useState("");
+  const [likedWishIds, setLikedWishIds] = useState<string[]>([]);
 
   useEffect(() => {
     const updateCountdown = () => {
@@ -67,6 +399,29 @@ export default function Home() {
     return () => clearInterval(interval);
   }, []);
 
+  // Hydrate Wishes from LocalStorage asynchronously
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      try {
+        const savedWishes = localStorage.getItem("harsha_harshitha_wishes");
+        if (savedWishes) {
+          const parsedWishes = JSON.parse(savedWishes);
+          if (Array.isArray(parsedWishes) && parsedWishes.length > 0) {
+            setWishesList(parsedWishes);
+          }
+        }
+        const savedLikes = localStorage.getItem("harsha_harshitha_liked_wishes");
+        if (savedLikes) {
+          setLikedWishIds(JSON.parse(savedLikes));
+        }
+      } catch {
+        // Ignore localStorage errors
+      }
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   const toggleLang = (e?: React.MouseEvent) => {
     if (e) {
       e.preventDefault();
@@ -82,12 +437,43 @@ export default function Home() {
     }
   };
 
+  const toggleAudio = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (!audioRef.current) return;
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+    }
+  };
+
   const openInvitation = (e?: React.MouseEvent) => {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
     }
-    scrollToSection("invitation");
+    setIsRevealing(true);
+    setIsOpened(true);
+
+    // Auto-play Pesumale instrumental on user interaction gesture
+    if (audioRef.current && !isPlaying) {
+      audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+    }
+
+    // Slow, cinematic reveal transition into the invitation
+    setTimeout(() => {
+      const element = document.getElementById("invitation");
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+      setTimeout(() => {
+        setIsRevealing(false);
+      }, 1200);
+    }, 280);
   };
 
   const content = {
@@ -95,10 +481,12 @@ export default function Home() {
       nav: {
         cover: "Home",
         invite: "Invitation",
-        events: "Events",
-        journey: "Our Journey",
+        saveTheDate: "Save The Date",
+        countdown: "Countdown",
+        note: "A Note For You",
         gallery: "Gallery",
         venue: "Venue",
+        wishes: "Wishes Wall",
       },
       hero: {
         taglineBadge: "A Love Story Begins...",
@@ -110,47 +498,55 @@ export default function Home() {
         city: "Bengaluru, Karnataka",
       },
       invitation: {
-        badge: "The Sacred Union",
         auspicious: "|| ಶ್ರೀ ||",
         blessing:
           "With the divine blessings of Sri Giripura Anjaneya Swamy & Sri Jinnagaradamma Devi",
-        inviteText:
-          "Together with their families, cordially invite you to celebrate the joyous wedding ceremony of",
+        weddingOfHeading: "THE WEDDING OF",
         groom: "Harsha",
         bride: "Harshitha",
+        invitationHeading: "THE INVITATION",
+        togetherWithFamilies: "Together with their families,",
+        groomsParents: "Smt. Gowramma T. & Sri. Rajanna H.T.",
+        bridesParents: "Smt. Lalitha H.C. & Sri. Mohan Kumar D.",
+        cordiallyInvite:
+          "Cordially invite you to celebrate the wedding of their children",
         weddingDay: "Sunday, 06 December 2026",
         muhurthamTime: "Muhurtham: 8:25 AM – 9:25 AM (Dhanur Lagna)",
-        countdownTitle: "Counting Down to Forever",
+      },
+      saveTheDate: {
+        badge: "The Date",
+        title: "Save the Date",
+        tagline: "Scratch the gold to unveil our special day",
+        swipeBottomHint: "SWIPE YOUR FINGER ACROSS THE GOLD",
+        revealedBadge: "✨ SEE YOU THERE ✨",
+        receptionCardTitle: "Reception",
+        receptionCardDate: "Saturday, 05 December 2026",
+        receptionCardTime: "6:30 PM onwards",
+        muhurthamCardTitle: "Muhurtham",
+        muhurthamCardDate: "Sunday, 06 December 2026",
+        muhurthamCardTime: "8:25 AM – 9:25 AM (Dhanur Lagna)",
+      },
+      countdown: {
+        badge: "Counting Down",
+        subline1: "A Lifetime of Togetherness",
+        subline2: "Begins with one sacred step",
         days: "Days",
         hours: "Hours",
         mins: "Mins",
         secs: "Secs",
+        addToCalendarBtn: "Add to Calendar",
       },
-      events: {
-        title: "Wedding Celebrations",
-        subtitle: "Join us for the auspicious events filled with joy & blessings",
-        receptionTitle: "Grand Reception",
-        receptionDate: "Saturday, 05 December 2026",
-        receptionTime: "6:30 PM onwards",
-        receptionDesc:
-          "An evening of music, celebration, photography, and a lavish dinner.",
-        muhurthamTitle: "Wedding Muhurtham",
-        muhurthamDate: "Sunday, 06 December 2026",
-        muhurthamTime: "8:25 AM – 9:25 AM (Dhanur Lagna)",
-        muhurthamDesc:
-          "Traditional Vedic wedding rites followed by breakfast and lunch.",
-      },
-      journey: {
-        title: "Our Journey",
-        subtitle: "From a chance meeting to a forever promise",
-        quote:
-          "“Two hearts that beat as one, guided by faith, embraced by family, and bound by destiny.”",
-        story1Title: "A Serendipitous Beginning",
-        story1Desc:
-          "What began as a quiet smile soon became conversations that felt effortless and deep. With every shared dream and laughter, they realized they had found their home in each other.",
-        story2Title: "Stepping Into Forever",
-        story2Desc:
-          "With the warm blessings of parents and loved ones, Harsha and Harshitha take this sacred step hand in hand, ready to begin the greatest adventure of their lives.",
+      note: {
+        badge: "A LITTLE NOTE FOR YOU",
+        title: "From our Hearts",
+        hook1: "A forever worth celebrating",
+        hook2: "And so, a beautiful journey begins…",
+        p1: "There are milestones in life that deserve to be celebrated with all our hearts. Moments that bring families closer, friendships together and happiness beyond words.",
+        p2: "Our wedding is one such moment — a celebration of love, trust, tradition and the promise of a lifetime.",
+        p3: "As we take our vows and begin our journey together, we carry the blessings of our loved ones and the dreams of a beautiful future.",
+        p4: "We would be honoured by your presence as we celebrate this unforgettable occasion.",
+        signature: "Harsha R & Harshitha DM",
+        closing: "One beautiful day. One sacred bond. One lifetime of memories.",
       },
       gallery: {
         title: "Captured Moments",
@@ -158,6 +554,7 @@ export default function Home() {
         tapHint: "Tap on any photo to view in full screen",
       },
       venue: {
+        badge: "THE VENUE",
         title: "Wedding Venue & Directions",
         subtitle: "We look forward to welcoming you with warm hearts",
         venueName: "S.V. Convention Centre",
@@ -166,6 +563,35 @@ export default function Home() {
         mapsBtn: "Open in Google Maps",
         familyClosing:
           "With best compliments from near and dear ones & Relatives.",
+      },
+      wishes: {
+        badge: "Guestbook",
+        title: "Blessings & Wishes Wall",
+        subtitle:
+          "Share your love, memories, and warm blessings for Harsha & Harshitha.",
+        formTitle: "Send Your Blessings to the Couple",
+        nameLabel: "Your Name",
+        namePlaceholder: "Your Name",
+        relationLabel: "Relationship to Couple:",
+        relations: [
+          "Family",
+          "Friend of Groom",
+          "Friend of Bride",
+          "Colleague",
+          "Well Wisher",
+        ],
+        tagLabel: "Blessing Theme:",
+        tags: [
+          "🌸 Shubh Vivah",
+          "✨ Divine Blessings",
+          "💖 Endless Love",
+          "🎉 Cheers & Joy",
+        ],
+        msgLabel: "Heartfelt Message",
+        msgPlaceholder: "Write your heartfelt blessing or memory here...",
+        postBtn: "Post Blessing",
+        likeLabel: "Loves",
+        justNow: "Just now",
       },
       footer: {
         couple: "Harsha ♥ Harshitha",
@@ -176,10 +602,12 @@ export default function Home() {
       nav: {
         cover: "ಮುಖಪುಟ",
         invite: "ಆಹ್ವಾನ",
-        events: "ಕಾರ್ಯಕ್ರಮ",
-        journey: "ಪಯಣ",
+        saveTheDate: "ದಿನಾಂಕ",
+        countdown: "ದಿನಗಣನೆ",
+        note: "ಪ್ರೀತಿಯ ಸಂದೇಶ",
         gallery: "ಗ್ಯಾಲರಿ",
         venue: "ಸ್ಥಳ",
+        wishes: "ಹಾರೈಕೆಗಳು",
       },
       hero: {
         taglineBadge: "ಒಂದು ಸುಂದರ ಪ್ರೇಮಕಥೆಯ ಆರಂಭ...",
@@ -192,45 +620,55 @@ export default function Home() {
         city: "ಬೆಂಗಳೂರು, ಕರ್ನಾಟಕ",
       },
       invitation: {
-        badge: "ಪವಿತ್ರ ವಿವಾಹ ಮಹೋತ್ಸವ",
         auspicious: "|| ಶ್ರೀ ||",
         blessing:
           "ಶ್ರೀ ಗಿರಿಪುರ ಆಂಜನೇಯ ಸ್ವಾಮಿ ಹಾಗೂ ಶ್ರೀ ಜಿನ್ನಗರದಮ್ಮ ದೇವಿಯ ಕೃಪೆಯಿಂದ",
-        inviteText:
-          "ನಮ್ಮ ಕುಟುಂಬದವರೊಂದಿಗೆ ನಮ್ಮ ವಿವಾಹ ಮಹೋತ್ಸವಕ್ಕೆ ತಮ್ಮನ್ನು ಪ್ರೀತಿಪೂರ್ವಕವಾಗಿ ಆಹ್ವಾನಿಸುತ್ತೇವೆ",
+        weddingOfHeading: "ಶುಭ ವಿವಾಹ ಮಹೋತ್ಸವ",
         groom: "ಹರ್ಷ",
         bride: "ಹರ್ಷಿತಾ",
+        invitationHeading: "ಆಹ್ವಾನ ಪತ್ರಿಕೆ",
+        togetherWithFamilies: "ತಮ್ಮ ಕುಟುಂಬದವರೊಂದಿಗೆ,",
+        groomsParents: "ಶ್ರೀಮತಿ ಗೌರಮ್ಮ ಟಿ. & ಶ್ರೀ ರಾಜಣ್ಣ ಹೆಚ್.ಟಿ.",
+        bridesParents: "ಶ್ರೀಮತಿ ಲಲಿತಾ ಹೆಚ್.ಸಿ. & ಶ್ರೀ ಮೋಹನ್ ಕುಮಾರ್ ಡಿ.",
+        cordiallyInvite:
+          "ತಮ್ಮ ಮಕ್ಕಳ ವಿವಾಹ ಮಹೋತ್ಸವಕ್ಕೆ ತಮ್ಮನ್ನು ಪ್ರೀತಿಪೂರ್ವಕವಾಗಿ ಆಹ್ವಾನಿಸುತ್ತಾರೆ",
         weddingDay: "ಭಾನುವಾರ, 06 ಡಿಸೆಂಬರ್ 2026",
         muhurthamTime: "ಮದುವೆ ಮುಹೂರ್ತ: ಬೆಳಗ್ಗೆ 8:25 ರಿಂದ 9:25 ರವರೆಗೆ (ಧನುರ್ ಲಗ್ನ)",
-        countdownTitle: "ವಿವಾಹ ಮಹೋತ್ಸವಕ್ಕೆ ಇನ್ನು",
+      },
+      saveTheDate: {
+        badge: "The Date",
+        title: "Save the Date",
+        tagline: "ನಮ್ಮ ವಿಶೇಷ ದಿನಾಂಕವನ್ನು ತಿಳಿಯಲು ಚಿನ್ನದ ಹೊದಿಕೆಯನ್ನು ಉಜ್ಜಿ",
+        swipeBottomHint: "SWIPE YOUR FINGER ACROSS THE GOLD",
+        revealedBadge: "✨ SEE YOU THERE ✨",
+        receptionCardTitle: "ಆರತಕ್ಷತೆ",
+        receptionCardDate: "ಶನಿವಾರ, 05 ಡಿಸೆಂಬರ್ 2026",
+        receptionCardTime: "ಸಂಜೆ 6:30 ರಿಂದ",
+        muhurthamCardTitle: "ಮುಹೂರ್ತ",
+        muhurthamCardDate: "ಭಾನುವಾರ, 06 ಡಿಸೆಂಬರ್ 2026",
+        muhurthamCardTime: "ಬೆಳಗ್ಗೆ 8:25 ರಿಂದ 9:25 (ಧನುರ್ ಲಗ್ನ)",
+      },
+      countdown: {
+        badge: "Counting Down",
+        subline1: "A Lifetime of Togetherness",
+        subline2: "Begins with one sacred step",
         days: "ದಿನಗಳು",
         hours: "ಗಂಟೆಗಳು",
         mins: "ನಿಮಿಷಗಳು",
         secs: "ಸೆಕೆಂಡುಗಳು",
+        addToCalendarBtn: "ಕ್ಯಾಲೆಂಡರ್‌ಗೆ ಸೇರಿಸಿ",
       },
-      events: {
-        title: "ವಿವಾಹ ಕಾರ್ಯಕ್ರಮಗಳು",
-        subtitle: "ಮಂಗಳಕರ ಸಮಾರಂಭಗಳಲ್ಲಿ ಪಾಲ್ಗೊಂಡು ವಧು-ವರರನ್ನು ಆಶೀರ್ವದಿಸಿ",
-        receptionTitle: "ಆರತಕ್ಷತೆ (Reception)",
-        receptionDate: "ಶನಿವಾರ, 05 ಡಿಸೆಂಬರ್ 2026",
-        receptionTime: "ಸಂಜೆ 6:30 ರಿಂದ",
-        receptionDesc: "ಸಂಗೀತ ಸಂಭ್ರಮ, ಛಾಯಾಗ್ರಹಣ ಹಾಗೂ ಪ್ರೀತಿಯ ಪ್ರೀತಿಭೋಜನ.",
-        muhurthamTitle: "ಮಾಂಗಲ್ಯ ಧಾರಣ ಮುಹೂರ್ತ",
-        muhurthamDate: "ಭಾನುವಾರ, 06 ಡಿಸೆಂಬರ್ 2026",
-        muhurthamTime: "ಬೆಳಗ್ಗೆ 8:25 ರಿಂದ 9:25 ರ ಶುಭ ಧನುರ್ ಲಗ್ನದಲ್ಲಿ",
-        muhurthamDesc: "ಶಾಸ್ತ್ರೋಕ್ತ ಕಲ್ಯಾಣ ಮಹೋತ್ಸವ ಹಾಗೂ ಮಧ್ಯಾಹ್ನದ ಶುಭ ಭೋಜನ.",
-      },
-      journey: {
-        title: "ನಮ್ಮ ಪ್ರೇಮ ಪಯಣ",
-        subtitle: "ಒಂದು ಸುಂದರ ಭೇಟಿಯಿಂದ ಶಾಶ್ವತ ಬಾಂಧವ್ಯದ ಕಡೆಗೆ",
-        quote:
-          "“ಮನಸ್ಸುಗಳು ಒಂದಾಗಿ, ಸಂಪ್ರದಾಯದ ಬಂಧನದಲ್ಲಿ, ಪ್ರೀತಿಯ ಆಸರೆಯಲ್ಲಿ ಸಾಗುವ ಸುಂದರ ಪಯಣ.”",
-        story1Title: "ಸುಂದರ ಆರಂಭ",
-        story1Desc:
-          "ಒಂದು ಸಣ್ಣ ಪರಿಚಯ, ಸುಂದರ ಸಂಭಾಷಣೆಗಳಾಗಿ ಮಾರ್ಪಟ್ಟು, ಒಬ್ಬರನ್ನೊಬ್ಬರು ಅರ್ಥಮಾಡಿಕೊಂಡಾಗ ಜೀವನದ ಸಂಗಾತಿಯಾಗಿ ಮುನ್ನಡೆಯುವ ಸಂಕಲ್ಪವಾಯಿತು.",
-        story2Title: "ಸಪ್ತಪದಿಯ ಸಂಭ್ರಮ",
-        story2Desc:
-          "ತಂದೆ-ತಾಯಿ ಹಾಗೂ ಕುಟುಂಬದವರ ಹಾರೈಕೆಯೊಂದಿಗೆ ಹರ್ಷ ಮತ್ತು ಹರ್ಷಿತಾ ನೂತನ ಜೀವನದ ಹೊಸ್ತಿಲಿಗೆ ಹೆಜ್ಜೆ ಇಡುತ್ತಿದ್ದಾರೆ.",
+      note: {
+        badge: "A LITTLE NOTE FOR YOU",
+        title: "ನಮ್ಮ ಹೃದಯದಾಳದಿಂದ (From our Hearts)",
+        hook1: "A forever worth celebrating",
+        hook2: "ಹಾಗೂ ಒಂದು ಸುಂದರ ಪಯಣ ಆರಂಭವಾಗುತ್ತಿದೆ…",
+        p1: "ಜೀವನದಲ್ಲಿ ಕೆಲವು ಮಹತ್ವದ ಕ್ಷಣಗಳು ನಮ್ಮ ಸಂಪೂರ್ಣ ಹೃದಯದಿಂದ ಆಚರಿಸಲು ಯೋಗ್ಯವಾಗಿರುತ್ತವೆ. ಕುಟುಂಬಗಳನ್ನು ಹತ್ತಿರ ತರುವ, ಸ್ನೇಹವನ್ನು ಒಂದುಗೂಡಿಸುವ ಮತ್ತು ಮಾತುಗಳಿಗೆ ಮೀರಿದ ಸಂತೋಷವನ್ನು ನೀಡುವ ಕ್ಷಣಗಳಿವು.",
+        p2: "ನಮ್ಮ ವಿವಾಹವು ಅಂತಹ ಒಂದು ಪವಿತ್ರ ಕ್ಷಣ — ಪ್ರೀತಿ, ನಂಬಿಕೆ, ಸಂಪ್ರದಾಯ ಮತ್ತು ಜೀವಮಾನದ ಭರವಸೆಯ ಸಂಭ್ರಮ.",
+        p3: "ನಾವು ಸಪ್ತಪದಿ ತುಳಿದು ಹೊಸ ಜೀವನದ ಪಯಣವನ್ನು ಆರಂಭಿಸುವಾಗ, ನಮ್ಮ ಹಿರಿಯರ, ಆಪ್ತರ ಆಶೀರ್ವಾದ ಹಾಗೂ ಸುಂದರ ಭವಿಷ್ಯದ ಕನಸುಗಳನ್ನು ನಮ್ಮೊಂದಿಗೆ ಕೊಂಡೊಯ್ಯುತ್ತಿದ್ದೇವೆ.",
+        p4: "ಈ ಮರೆಯಲಾಗದ ಸಂಭ್ರಮದಲ್ಲಿ ತಮ್ಮ ಉಪಸ್ಥಿತಿಯು ನಮಗೆ ಅತ್ಯಂತ ಗೌರವ ಮತ್ತು ಸಂತೋಷವನ್ನು ತರುತ್ತದೆ.",
+        signature: "ಹರ್ಷ ಆರ್ & ಹರ್ಷಿತಾ ಡಿ.ಎಂ.",
+        closing: "ಒಂದು ಸುಂದರ ದಿನ. ಒಂದು ಪವಿತ್ರ ಬಂಧ. ಜೀವಮಾನದ ನೆನಪುಗಳು.",
       },
       gallery: {
         title: "ಮಧುರ ಕ್ಷಣಗಳು",
@@ -238,6 +676,7 @@ export default function Home() {
         tapHint: "ದೊಡ್ಡದಾಗಿ ವೀಕ್ಷಿಸಲು ಯಾವುದೇ ಚಿತ್ರವನ್ನು ಕ್ಲಿಕ್ ಮಾಡಿ",
       },
       venue: {
+        badge: "ಸ್ಥಳ & ಮಾರ್ಗಸೂಚಿ",
         title: "ಕಲ್ಯಾಣ ಮಂಟಪ & ಮಾರ್ಗಸೂಚಿ",
         subtitle: "ತಮ್ಮ ಆಗಮನವನ್ನು ಪ್ರೀತಿಯಿಂದ ನಿರೀಕ್ಷಿಸುತ್ತೇವೆ",
         venueName: "ಎಸ್.ವಿ. ಕನ್ವೆನ್ಷನ್ ಸೆಂಟರ್",
@@ -245,6 +684,35 @@ export default function Home() {
         addressLine2: "ಕೆಎಸ್ಎಸ್ಆರ್‌ಡಿಐ ಹಿಂಭಾಗ, ತಲಘಟ್ಟಪುರ, ಬೆಂಗಳೂರು - 560109",
         mapsBtn: "ಗೂಗಲ್ ಮ್ಯಾಪ್ಸ್‌ನಲ್ಲಿ ವೀಕ್ಷಿಸಿ",
         familyClosing: "ಇಂತಿ ತಮ್ಮ ಆಗಮನ ನಿರೀಕ್ಷೆಯಲ್ಲಿ: ವಧು-ವರರು ಮತ್ತು ಕುಟುಂಬಸ್ಥರು.",
+      },
+      wishes: {
+        badge: "ಹಾರೈಕೆಗಳು & ಆಶೀರ್ವಾದ",
+        title: "ಅತಿಥಿಗಳ ಹಾರೈಕೆಗಳ ವೇದಿಕೆ",
+        subtitle:
+          "ಹರ್ಷ ಮತ್ತು ಹರ್ಷಿತಾ ಅವರ ನೂತನ ದಾಂಪತ್ಯ ಜೀವನಕ್ಕೆ ನಿಮ್ಮ ಹೃತ್ಪೂರ್ವಕ ಹಾರೈಕೆಗಳನ್ನು ತಿಳಿಸಿ.",
+        formTitle: "ನಿಮ್ಮ ಹಾರೈಕೆಯನ್ನು ಬರೆಯಿರಿ",
+        nameLabel: "ನಿಮ್ಮ ಹೆಸರು",
+        namePlaceholder: "ನಿಮ್ಮ ಹೆಸರು",
+        relationLabel: "ಬಾಂಧವ್ಯ:",
+        relations: [
+          "ಕುಟುಂಬಸ್ಥರು",
+          "ವರನ ಸ್ನೇಹಿತರು",
+          "ವಧುವಿನ ಸ್ನೇಹಿತರು",
+          "ಸಹೋದ್ಯೋಗಿಗಳು",
+          "ಹಿತೈಷಿಗಳು",
+        ],
+        tagLabel: "ಹಾರೈಕೆಯ ವಿಧ:",
+        tags: [
+          "🌸 ಶುಭ ವಿವಾಹ",
+          "✨ ದೈವಿಕ ಆಶೀರ್ವಾದ",
+          "💖 ಪ್ರೀತಿಯ ಹಾರೈಕೆ",
+          "🎉 ಸಂಭ್ರಮದ ಶುಭಾಶಯ",
+        ],
+        msgLabel: "ಹೃತ್ಪೂರ್ವಕ ಸಂದೇಶ",
+        msgPlaceholder: "ಹರ್ಷ ಮತ್ತು ಹರ್ಷಿತಾ ಅವರಿಗೆ ನಿಮ್ಮ ಪ್ರೀತಿಯ ಸಂದೇಶವನ್ನು ಬರೆಯಿರಿ...",
+        postBtn: "ಹಾರೈಕೆ ಪ್ರಕಟಿಸಿ",
+        likeLabel: "ಹಾರೈಕೆಗಳು",
+        justNow: "ಈಗಷ್ಟೇ",
       },
       footer: {
         couple: "ಹರ್ಷ ♥ ಹರ್ಷಿತಾ",
@@ -255,17 +723,120 @@ export default function Home() {
 
   const t = content[lang];
 
+  // Wishes Handlers
+  const handlePostWish = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newWishName.trim() || !newWishMessage.trim()) return;
+
+    const chosenRelation = newWishRelation || t.wishes.relations[0];
+    const chosenTag = newWishTag || t.wishes.tags[0];
+
+    const newWish: WishItem = {
+      id: createUniqueId("wish"),
+      name: newWishName.trim(),
+      relation: chosenRelation,
+      tag: chosenTag,
+      message: newWishMessage.trim(),
+      likes: 1,
+      createdAt: lang === "kn" ? "ಈಗಷ್ಟೇ" : "Just now",
+      isCustom: true,
+    };
+
+    const updated = [newWish, ...wishesList];
+    setWishesList(updated);
+    setLikedWishIds((prev) => [...prev, newWish.id]);
+    setNewWishName("");
+    setNewWishMessage("");
+    setNewWishRelation("");
+    setNewWishTag("");
+
+    try {
+      localStorage.setItem("harsha_harshitha_wishes", JSON.stringify(updated));
+      localStorage.setItem(
+        "harsha_harshitha_liked_wishes",
+        JSON.stringify([...likedWishIds, newWish.id])
+      );
+    } catch {
+      // Ignore
+    }
+  };
+
+  const handleToggleLikeWish = (wishId: string) => {
+    const isLiked = likedWishIds.includes(wishId);
+    const newLiked = isLiked
+      ? likedWishIds.filter((id) => id !== wishId)
+      : [...likedWishIds, wishId];
+    setLikedWishIds(newLiked);
+
+    const updatedWishes = wishesList.map((w) => {
+      if (w.id === wishId) {
+        return { ...w, likes: isLiked ? Math.max(0, w.likes - 1) : w.likes + 1 };
+      }
+      return w;
+    });
+    setWishesList(updatedWishes);
+
+    try {
+      localStorage.setItem("harsha_harshitha_liked_wishes", JSON.stringify(newLiked));
+      localStorage.setItem("harsha_harshitha_wishes", JSON.stringify(updatedWishes));
+    } catch {
+      // Ignore
+    }
+  };
+
   const galleryImages = [
-    { src: "reflection.jpg", title: "Reflections of Love" },
-    { src: "lotus-boat.jpg", title: "Serene Together" },
-    { src: "splash-boat.jpg", title: "Joy & Splashes" },
-    { src: "beach-story.jpg", title: "Sunset Stroll" },
-    { src: "beach-run.jpg", title: "Laughter by the Waves" },
-    { src: "flower-boat.jpg", title: "Floral Romance" },
+    { src: "galley1.jpg", title: "Forever in Your Eyes" },
+    { src: "galley3.jpg", title: "Hand in Hand" },
+    { src: "galley4.jpg", title: "Moments of Laughter" },
+    { src: "galley5.jpg", title: "Where Love Resides" },
+    { src: "galley6.jpg", title: "A Sacred Promise" },
+    { src: "galley7.jpg", title: "Together in Every Step" },
   ];
 
+  const nextSlide = () => {
+    setActiveSlide((prev) => (prev + 1) % galleryImages.length);
+  };
+
+  const prevSlide = () => {
+    setActiveSlide((prev) => (prev - 1 + galleryImages.length) % galleryImages.length);
+  };
+
+  // Event Calendar URLs
+  const receptionGoogleUrl = getGoogleCalendarUrl({
+    title:
+      lang === "kn"
+        ? "ಆರತಕ್ಷತೆ: ಹರ್ಷ & ಹರ್ಷಿತಾ (#HARSHSQUARED)"
+        : "Reception: Harsha & Harshitha (#HARSHSQUARED)",
+    details:
+      lang === "kn"
+        ? "ಹರ್ಷ ಮತ್ತು ಹರ್ಷಿತಾ ಅವರ ಆರತಕ್ಷತೆ ಸಮಾರಂಭ. ಸಂಗೀತ ಸಂಭ್ರಮ ಹಾಗೂ ಪ್ರೀತಿಯ ಸಮಾಗಮ. ಸ್ಥಳ: ಎಸ್.ವಿ. ಕನ್ವೆನ್ಷನ್ ಸೆಂಟರ್, ಬೆಂಗಳೂರು. #HARSHSQUARED"
+        : "Reception of Harsha & Harshitha. Join us for music, celebration, and togetherness at S.V. Convention Centre, Bengaluru. #HARSHSQUARED",
+    location: VENUE_LOCATION,
+    start: "20261205T183000",
+    end: "20261205T223000",
+  });
+
+  // Wedding Muhurtham Google Calendar URL
+  const muhurthamGoogleUrl = getGoogleCalendarUrl({
+    title:
+      lang === "kn"
+        ? "ಮುಹೂರ್ತ: ಹರ್ಷ & ಹರ್ಷಿತಾ (#HARSHSQUARED)"
+        : "Muhurtham: Harsha & Harshitha (#HARSHSQUARED)",
+    details:
+      lang === "kn"
+        ? "ಹರ್ಷ ಮತ್ತು ಹರ್ಷಿತಾ ಅವರ ಶಾಸ್ತ್ರೋಕ್ತ ಮಾಂಗಲ್ಯ ಧಾರಣ ಮುಹೂರ್ತ (ಧನುರ್ ಲಗ್ನ: ಬೆಳಗ್ಗೆ 8:25 ರಿಂದ 9:25). ಸ್ಥಳ: ಎಸ್.ವಿ. ಕನ್ವೆನ್ಷನ್ ಸೆಂಟರ್, ಬೆಂಗಳೂರು. #HARSHSQUARED"
+        : "Sacred Muhurtham ceremony of Harsha & Harshitha in Dhanur Lagna (8:25 AM - 9:25 AM) at S.V. Convention Centre, Bengaluru. #HARSHSQUARED",
+    location: VENUE_LOCATION,
+    start: "20261206T082500",
+    end: "20261206T140000",
+  });
+
   return (
-    <div className="min-h-screen flex flex-col bg-[#FDFBF7] text-[#331818]">
+    <div
+      className={`min-h-screen flex flex-col bg-[#FDFBF7] text-[#331818] ${
+        !isOpened ? "h-screen overflow-hidden" : ""
+      }`}
+    >
       {/* ─── TOP NAVIGATION BAR ─── */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-[#250E0E]/90 backdrop-blur-md text-white border-b border-amber-300/20 py-3 px-4 sm:px-8 shadow-md">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
@@ -273,7 +844,7 @@ export default function Home() {
           <button
             type="button"
             onClick={() => scrollToSection("hero")}
-            className="flex items-center gap-2 hover:opacity-85 transition cursor-pointer text-left"
+            className="flex items-center gap-2 hover:opacity-85 transition cursor-pointer text-left shrink-0"
           >
             <span className="font-serif text-lg sm:text-xl font-bold text-[#FCE08B] tracking-wide">
               Harsha &amp; Harshitha
@@ -284,7 +855,7 @@ export default function Home() {
           <button
             type="button"
             onClick={toggleLang}
-            className="bg-[#E2B755] hover:bg-[#FCE08B] text-[#250E0E] font-semibold px-4 py-1.5 rounded-full shadow-md text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer active:scale-95"
+            className="bg-[#E2B755] hover:bg-[#FCE08B] text-[#250E0E] font-semibold px-4 py-1.5 rounded-full shadow-md text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer active:scale-95 shrink-0"
             aria-label="Switch Language"
           >
             <Languages size={15} />
@@ -300,49 +871,53 @@ export default function Home() {
         ══════════════════════════════════════════════════ */}
         <section
           id="hero"
-          className="relative min-h-screen w-full flex flex-col justify-between items-center text-center text-white px-6 pt-24 pb-12 overflow-hidden"
+          className="relative h-screen w-full flex flex-col justify-between items-center text-center text-white px-6 pt-24 pb-8 overflow-hidden"
         >
-          {/* Sacred Temple Kalyani / Lake Background with Royal Wedding Velvet Overlay */}
+          {/* Full-bleed Couple Painting Background - Pure fit to frame, as-is */}
           <div className="absolute inset-0 z-0">
             <Image
-              src="/images/kalyani-stepwell.jpg"
-              alt="Sacred Temple Kalyani"
+              src="/images/harsha-harshitha-widescreen.png"
+              alt="Harsha and Harshitha"
               fill
               priority
-              className="object-cover object-center transform scale-105 filter brightness-70 contrast-105"
+              className="object-cover object-center"
             />
-            {/* Rich Wedding Velvet & Gold Vignette Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-b from-[#250808]/88 via-[#1C0505]/75 to-[#120202]/92" />
-            <div className="absolute inset-0 bg-radial from-amber-500/15 via-transparent to-black/60" />
-            
+            {/* Luminous & Clean Wedding Veil */}
+            <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/80" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_45%,rgba(0,0,0,0.55)_100%)]" />
+
             {/* Corner subtle ornamental borders */}
-            <div className="absolute top-6 left-6 w-16 h-16 border-t-2 border-l-2 border-amber-300/30 rounded-tl-xl hidden sm:block" />
-            <div className="absolute top-6 right-6 w-16 h-16 border-t-2 border-r-2 border-amber-300/30 rounded-tr-xl hidden sm:block" />
-            <div className="absolute bottom-6 left-6 w-16 h-16 border-b-2 border-l-2 border-amber-300/30 rounded-bl-xl hidden sm:block" />
-            <div className="absolute bottom-6 right-6 w-16 h-16 border-b-2 border-r-2 border-amber-300/30 rounded-br-xl hidden sm:block" />
+            <div className="absolute top-6 left-6 w-16 h-16 border-t-2 border-l-2 border-amber-300/40 rounded-tl-xl hidden sm:block pointer-events-none" />
+            <div className="absolute top-6 right-6 w-16 h-16 border-t-2 border-r-2 border-amber-300/40 rounded-tr-xl hidden sm:block pointer-events-none" />
+            <div className="absolute bottom-6 left-6 w-16 h-16 border-b-2 border-l-2 border-amber-300/40 rounded-bl-xl hidden sm:block pointer-events-none" />
+            <div className="absolute bottom-6 right-6 w-16 h-16 border-b-2 border-r-2 border-amber-300/40 rounded-br-xl hidden sm:block pointer-events-none" />
           </div>
 
-          {/* Top Badge */}
-          <div className="relative z-10 pt-4">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-amber-300/30 text-xs md:text-sm tracking-widest uppercase text-amber-200 shadow-lg">
+          {/* Top Tagline Badge & Couple Hashtag */}
+          <div className="relative z-10 pt-2 flex flex-col items-center gap-1.5">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-black/50 backdrop-blur-md border border-white/25 text-xs md:text-sm tracking-widest uppercase text-amber-200 shadow-xl">
               <Sparkles size={14} className="text-amber-300" />
               <span>{t.hero.taglineBadge}</span>
             </div>
+            <span className="inline-block px-3 py-0.5 rounded-full bg-[#250E0E]/80 backdrop-blur-sm border border-amber-300/40 text-[#FCE08B] text-[11px] sm:text-xs font-sans font-medium tracking-[0.2em] uppercase shadow">
+              #HARSHSQUARED
+            </span>
           </div>
 
-          {/* Center Titles, Quote & Open Invitation Button */}
-          <div className="relative z-10 max-w-4xl mx-auto flex flex-col items-center my-auto py-6">
-            <div className="space-y-2 mb-6">
-              <p className="font-script text-3xl sm:text-4xl md:text-5xl text-amber-100/95 font-normal tracking-wide max-w-2xl leading-relaxed drop-shadow">
+          {/* CENTER: Quote Lines, Royal Wax Seal & Open Invitation Button - Perfectly Centered */}
+          <div className="relative z-10 max-w-2xl mx-auto flex flex-col items-center text-center my-auto py-6">
+            {/* Centered Romantic Quote Lines */}
+            <div className="space-y-1.5 mb-5 px-2">
+              <p className="font-script text-3xl sm:text-4xl md:text-5xl text-amber-50 font-normal tracking-wide max-w-2xl leading-relaxed drop-shadow-[0_2px_14px_rgba(0,0,0,0.95)]">
                 {t.hero.quote1}
               </p>
-              <p className="text-xs sm:text-sm md:text-base text-gray-300 font-light tracking-wider">
+              <p className="text-xs sm:text-sm md:text-base text-gray-100 font-light tracking-wider drop-shadow-[0_1px_8px_rgba(0,0,0,0.9)]">
                 {t.hero.quote2}
               </p>
             </div>
 
-            {/* ROYAL WEDDING WAX SEAL (Custom Symbol) */}
-            <div className="my-6 relative flex flex-col items-center">
+            {/* ROYAL WEDDING WAX SEAL (Custom Symbol) in the EXACT CENTER */}
+            <div className="my-3 relative flex flex-col items-center">
               <button
                 type="button"
                 onClick={openInvitation}
@@ -352,21 +927,26 @@ export default function Home() {
                 {/* Outer Glow Halo */}
                 <div className="absolute -inset-2 rounded-full bg-gradient-to-r from-[#FCE08B] via-[#E2B755] to-[#D4AF37] opacity-30 blur-md group-hover:opacity-65 transition duration-500" />
 
-                {/* Small Wax Seal Medallion */}
-                <div className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-gradient-to-br from-[#3D1414] via-[#250909] to-[#140303] backdrop-blur-md border-2 border-[#E2B755] shadow-[0_0_20px_rgba(226,183,85,0.4)] group-hover:shadow-[0_0_30px_rgba(226,183,85,0.7)] flex flex-col items-center justify-center p-2 transition-all duration-300 transform group-hover:scale-108 active:scale-95">
+                {/* Compact Wax Seal Medallion */}
+                <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-gradient-to-br from-[#3D1414]/95 via-[#230808]/95 to-[#120202]/95 backdrop-blur-md border-2 border-[#E2B755] shadow-[0_0_20px_rgba(226,183,85,0.4)] group-hover:shadow-[0_0_30px_rgba(226,183,85,0.7)] flex flex-col items-center justify-center p-2 transition-all duration-300 transform group-hover:scale-105 active:scale-95">
                   {/* Outer Dotted Ornamental Ring */}
                   <div className="absolute inset-1.5 rounded-full border border-dashed border-[#FCE08B]/45 pointer-events-none" />
                   {/* Inner Fine Ring */}
                   <div className="absolute inset-3 rounded-full border border-[#E2B755]/25 pointer-events-none" />
 
-                  {/* Custom Wedding Monogram Symbol (Prominently Enlarged) */}
-                  <div className="relative w-[78px] h-[60px] sm:w-[92px] sm:h-[72px] flex items-center justify-center">
+                  {/* Top Tiny Sparkle */}
+                  <div className="text-[#FCE08B] mb-0.5 opacity-85 group-hover:scale-110 transition-transform">
+                    <Sparkles size={11} className="text-[#FCE08B]" />
+                  </div>
+
+                  {/* Custom Wedding Monogram Symbol (Ultra Crisp Retina Quality) */}
+                  <div className="relative w-[56px] h-[44px] sm:w-[66px] sm:h-[50px] flex items-center justify-center">
                     <Image
                       src="/images/wedding-symbol.png"
                       alt="Wedding Monogram"
-                      width={100}
-                      height={76}
-                      className="w-full h-full object-contain filter drop-shadow-[0_0_10px_rgba(252,224,139,0.9)] group-hover:scale-105 transition-transform"
+                      width={164}
+                      height={124}
+                      className="w-full h-full object-contain filter drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)] group-hover:scale-105 transition-transform"
                       priority
                     />
                   </div>
@@ -375,15 +955,15 @@ export default function Home() {
             </div>
 
             {/* OPEN INVITATION BUTTON */}
-            <div className="mt-8 flex flex-col items-center gap-3">
+            <div className="mt-4 flex flex-col items-center gap-2">
               <button
                 type="button"
                 onClick={openInvitation}
-                className="cursor-pointer group relative inline-flex items-center gap-3 px-10 py-4 rounded-full text-lg sm:text-xl font-semibold text-[#250E0E] bg-gradient-to-r from-[#FCE08B] via-[#E2B755] to-[#D4AF37] hover:from-[#FFF2B8] hover:to-[#E2B755] shadow-[0_4px_30px_rgba(226,183,85,0.55)] hover:shadow-[0_6px_40px_rgba(226,183,85,0.85)] transform hover:-translate-y-1 active:translate-y-0 transition-all duration-300 border-2 border-amber-200"
+                className="cursor-pointer group relative inline-flex items-center gap-2.5 px-8 py-3.5 rounded-full text-base sm:text-lg font-semibold text-[#250E0E] bg-gradient-to-r from-[#FCE08B] via-[#E2B755] to-[#D4AF37] hover:from-[#FFF2B8] hover:to-[#E2B755] shadow-[0_4px_25px_rgba(226,183,85,0.55)] hover:shadow-[0_6px_35px_rgba(226,183,85,0.85)] transform hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300 border-2 border-amber-200"
               >
                 <Heart
-                  size={20}
-                  className="fill-[#7A1F1F] text-[#7A1F1F] group-hover:scale-125 transition-transform"
+                  size={18}
+                  className="fill-[#8E6314] text-[#8E6314] group-hover:scale-125 transition-transform"
                 />
                 <span>{t.hero.cta}</span>
               </button>
@@ -391,16 +971,16 @@ export default function Home() {
               <button
                 type="button"
                 onClick={openInvitation}
-                className="text-xs sm:text-sm text-amber-200/90 hover:text-white flex items-center gap-1.5 transition-colors pt-2 animate-bounce cursor-pointer"
+                className="text-xs sm:text-sm text-amber-200/90 hover:text-white flex items-center gap-1.5 transition-colors pt-1 animate-bounce cursor-pointer"
               >
                 <span>{t.hero.stepInto}</span>
-                <ChevronDown size={16} />
+                <ChevronDown size={14} />
               </button>
             </div>
           </div>
 
           {/* Bottom City / Location tag */}
-          <div className="relative z-10 text-xs text-gray-300/80">
+          <div className="relative z-10 text-xs text-gray-300/80 pb-1">
             <span>{t.hero.city}</span>
           </div>
         </section>
@@ -410,21 +990,168 @@ export default function Home() {
         ══════════════════════════════════════════════════ */}
         <section
           id="invitation"
-          className="relative py-24 px-6 flex flex-col justify-center items-center"
+          className={`relative py-24 px-6 flex flex-col justify-center items-center transition-all duration-1000 ease-out ${
+            isRevealing
+              ? "opacity-30 scale-[0.98] blur-[1px]"
+              : "opacity-100 scale-100 blur-0"
+          }`}
         >
           <div className="max-w-4xl w-full bg-white/95 rounded-3xl p-8 sm:p-14 shadow-2xl border border-amber-900/15 relative overflow-hidden text-center">
-            {/* Auspicious Invocation */}
-            <div className="inline-block px-4 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold tracking-widest uppercase mb-4">
-              {t.invitation.badge}
+            {/* TOP LINE: THE WEDDING OF / Harsha / & / Harshitha */}
+            <div className="my-6">
+              <span className="text-xs sm:text-sm font-semibold tracking-[0.35em] uppercase block text-neutral-800 mb-6 sm:mb-8">
+                {t.invitation.weddingOfHeading}
+              </span>
+
+              {/* Groom's Name - In Radiant Gold */}
+              <h2
+                className={`font-script text-3xl sm:text-5xl md:text-6xl font-normal tracking-wide text-[#A6781D] drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)] ${
+                  lang === "kn"
+                    ? "font-serif italic font-bold text-2xl sm:text-4xl md:text-5xl"
+                    : ""
+                }`}
+              >
+                {t.invitation.groom}
+              </h2>
+
+              <span className="font-serif italic text-lg sm:text-2xl text-[#C9932B] block my-2 sm:my-3">
+                &amp;
+              </span>
+
+              {/* Bride's Name - In Radiant Gold */}
+              <h2
+                className={`font-script text-3xl sm:text-5xl md:text-6xl font-normal tracking-wide text-[#A6781D] drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)] ${
+                  lang === "kn"
+                    ? "font-serif italic font-bold text-2xl sm:text-4xl md:text-5xl"
+                    : ""
+                }`}
+              >
+                {t.invitation.bride}
+              </h2>
+
+              {/* Couple Wedding Tag */}
+              <div className="mt-3">
+                <span className="inline-block px-3.5 py-0.5 rounded-full bg-amber-500/10 border border-[#C9932B]/30 text-[#A6781D] font-sans font-medium tracking-[0.2em] text-[11px] sm:text-xs uppercase">
+                  #HARSHSQUARED
+                </span>
+              </div>
             </div>
 
-            <div className="text-amber-900 font-serif text-3xl font-bold my-2">
-              {t.invitation.auspicious}
+            <div className="my-8 sm:my-10 flex items-center justify-center gap-4">
+              <div className="h-[1px] w-24 bg-gradient-to-r from-transparent via-[#C9932B]/50 to-transparent" />
+              <div className="w-2 h-2 rounded-full bg-[#B38728]/70 shadow-sm" />
+              <div className="h-[1px] w-24 bg-gradient-to-r from-transparent via-[#C9932B]/50 to-transparent" />
             </div>
 
-            <p className="max-w-2xl mx-auto text-sm sm:text-base text-[#6B3E3E] font-medium leading-relaxed mt-2">
-              {t.invitation.blessing}
+            {/* HEADING: THE INVITATION & PARENTS TEXT */}
+            <div className="space-y-3.5 max-w-xl mx-auto">
+              <h3 className="font-serif text-xs sm:text-sm font-bold tracking-[0.3em] uppercase text-neutral-900">
+                {t.invitation.invitationHeading}
+              </h3>
+
+              <p className="font-sans font-light tracking-[0.06em] text-xs sm:text-sm text-neutral-600 leading-relaxed">
+                {t.invitation.togetherWithFamilies}
+              </p>
+
+              {/* Parents Names in refined italic serif in deep charcoal black */}
+              <div className="py-2 space-y-1">
+                <p className="font-serif italic text-base sm:text-lg font-semibold text-neutral-900 tracking-wide">
+                  {t.invitation.groomsParents}
+                </p>
+                <p className="text-[11px] sm:text-xs uppercase tracking-widest text-neutral-400 font-medium my-0.5">
+                  and
+                </p>
+                <p className="font-serif italic text-base sm:text-lg font-semibold text-neutral-900 tracking-wide">
+                  {t.invitation.bridesParents}
+                </p>
+              </div>
+
+              <p className="font-sans font-light tracking-[0.06em] text-xs sm:text-sm text-neutral-600 leading-relaxed">
+                {t.invitation.cordiallyInvite}
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* ══════════════════════════════════════════════════
+            3. SAVE THE DATE (Interactive Gold Scratch Cards)
+        ══════════════════════════════════════════════════ */}
+        <section
+          id="save-the-date"
+          className="relative py-24 px-6 flex flex-col justify-center items-center bg-[#FDFBF7] overflow-hidden"
+        >
+          {/* Subtle Artistic Gold Teardrops Scattered on White/Ivory Background */}
+          <GoldTeardrop className="absolute top-10 left-[8%] w-5 h-7 opacity-25 rotate-12 pointer-events-none" />
+          <GoldTeardrop className="absolute top-16 right-[10%] w-6 h-8 opacity-30 -rotate-12 pointer-events-none" />
+          <GoldTeardrop className="absolute bottom-16 left-[10%] w-4 h-6 opacity-20 -rotate-45 pointer-events-none" />
+          <GoldTeardrop className="absolute bottom-12 right-[8%] w-5 h-7 opacity-25 rotate-45 pointer-events-none" />
+          <GoldTeardrop className="absolute top-1/2 left-[4%] w-4 h-6 opacity-15 rotate-6 pointer-events-none hidden sm:block" />
+          <GoldTeardrop className="absolute top-1/2 right-[5%] w-4 h-6 opacity-20 -rotate-6 pointer-events-none hidden sm:block" />
+
+          <div className="max-w-4xl w-full text-center relative z-10">
+            {/* Top most one: "The Date" in charcoal */}
+            <span className="text-xs sm:text-sm font-semibold tracking-[0.3em] uppercase block text-neutral-800">
+              {t.saveTheDate.badge}
+            </span>
+
+            {/* Second "Save the Date": same font as bride/groom's name in gold */}
+            <h2 className="font-script text-5xl sm:text-7xl font-normal tracking-wide text-[#A6781D] my-2 drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]">
+              {t.saveTheDate.title}
+            </h2>
+
+            {/* Tagline in charcoal and complementing font (italic) */}
+            <p className="font-sans italic font-light tracking-[0.06em] text-xs sm:text-sm text-neutral-600 max-w-xl mx-auto mt-2">
+              &ldquo;{t.saveTheDate.tagline}&rdquo;
             </p>
+
+            {/* DUAL GOLD SCRATCH CARDS */}
+            <div className="grid md:grid-cols-2 gap-8 sm:gap-12 mt-12">
+              {/* Card 1: Reception */}
+              <GoldScratchCard
+                title={t.saveTheDate.receptionCardTitle}
+                date={t.saveTheDate.receptionCardDate}
+                time={t.saveTheDate.receptionCardTime}
+                bottomHint={t.saveTheDate.swipeBottomHint}
+                isRevealedText={t.saveTheDate.revealedBadge}
+                isKannada={lang === "kn"}
+              />
+
+              {/* Card 2: Muhurtham */}
+              <GoldScratchCard
+                title={t.saveTheDate.muhurthamCardTitle}
+                date={t.saveTheDate.muhurthamCardDate}
+                time={t.saveTheDate.muhurthamCardTime}
+                bottomHint={t.saveTheDate.swipeBottomHint}
+                isRevealedText={t.saveTheDate.revealedBadge}
+                isKannada={lang === "kn"}
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* ══════════════════════════════════════════════════
+            4. COUNTING DOWN (Dedicated Timer Page)
+        ══════════════════════════════════════════════════ */}
+        <section
+          id="countdown"
+          className="relative py-24 px-6 flex flex-col justify-center items-center bg-[#FDFBF7]"
+        >
+          <div className="max-w-3xl w-full bg-white/95 rounded-3xl p-8 sm:p-14 shadow-2xl border border-amber-900/15 relative overflow-hidden text-center">
+            {/* Top Badge: "Counting Down" in charcoal */}
+            <span className="text-xs sm:text-sm font-semibold tracking-[0.3em] uppercase block text-neutral-800">
+              {t.countdown.badge}
+            </span>
+
+            {/* A lifetime of togetherness in gold cursive script */}
+            <div className="my-4 space-y-1">
+              <p className="font-script text-4xl sm:text-6xl text-[#A6781D] font-normal my-2 drop-shadow-sm">
+                {t.countdown.subline1}
+              </p>
+              {/* Begins with one sacred step without all-caps, font in line with previous pages */}
+              <p className="font-sans font-light tracking-[0.08em] text-xs sm:text-sm text-neutral-600 mt-1">
+                {t.countdown.subline2}
+              </p>
+            </div>
 
             <div className="my-6 flex items-center justify-center gap-4">
               <div className="h-[1px] w-20 bg-amber-700/30" />
@@ -432,28 +1159,8 @@ export default function Home() {
               <div className="h-[1px] w-20 bg-amber-700/30" />
             </div>
 
-            <p className="text-base sm:text-lg text-gray-700 max-w-xl mx-auto font-light leading-relaxed">
-              {t.invitation.inviteText}
-            </p>
-
-            <div className="my-6">
-              <h2 className="font-serif text-4xl sm:text-6xl font-bold text-[#7A1F1F]">
-                {t.invitation.groom} &amp; {t.invitation.bride}
-              </h2>
-              <p className="mt-3 font-serif text-xl sm:text-2xl text-amber-900 font-semibold">
-                {t.invitation.weddingDay}
-              </p>
-              <p className="mt-1 text-sm sm:text-base text-gray-600 font-medium">
-                {t.invitation.muhurthamTime}
-              </p>
-            </div>
-
-            {/* Countdown Box */}
-            <div className="mt-8 pt-8 border-t border-amber-900/10">
-              <h3 className="font-serif text-lg sm:text-xl font-bold text-[#7A1F1F] mb-4">
-                {t.invitation.countdownTitle}
-              </h3>
-
+            {/* Countdown Numbers */}
+            <div className="mt-6">
               {isMounted && timeLeft.isFinished ? (
                 <div className="text-2xl font-serif text-rose-700 font-bold">
                   Today is the Wedding Day! ❤️
@@ -461,16 +1168,16 @@ export default function Home() {
               ) : (
                 <div className="grid grid-cols-4 gap-3 sm:gap-5 max-w-md mx-auto">
                   {[
-                    { label: t.invitation.days, val: isMounted ? timeLeft.days : 0 },
-                    { label: t.invitation.hours, val: isMounted ? timeLeft.hours : 0 },
-                    { label: t.invitation.mins, val: isMounted ? timeLeft.minutes : 0 },
-                    { label: t.invitation.secs, val: isMounted ? timeLeft.seconds : 0 },
+                    { label: t.countdown.days, val: isMounted ? timeLeft.days : 0 },
+                    { label: t.countdown.hours, val: isMounted ? timeLeft.hours : 0 },
+                    { label: t.countdown.mins, val: isMounted ? timeLeft.minutes : 0 },
+                    { label: t.countdown.secs, val: isMounted ? timeLeft.seconds : 0 },
                   ].map((item, idx) => (
                     <div
                       key={idx}
                       className="bg-amber-50/70 rounded-2xl p-3 sm:p-4 border border-amber-200/80 shadow-sm flex flex-col items-center"
                     >
-                      <span className="font-serif text-2xl sm:text-3xl font-bold text-[#7A1F1F]">
+                      <span className="font-serif text-2xl sm:text-3xl font-bold text-[#8E6314]">
                         {String(item.val).padStart(2, "0")}
                       </span>
                       <span className="text-[10px] sm:text-xs tracking-wider uppercase text-gray-600 mt-1">
@@ -480,204 +1187,235 @@ export default function Home() {
                   ))}
                 </div>
               )}
+
+              {/* Add to Calendar Buttons in Gold Theme (Reception & Muhurtham) */}
+              <div className="mt-8 flex flex-wrap items-center justify-center gap-3 sm:gap-4">
+                <a
+                  href={receptionGoogleUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-[#FCE08B] via-[#E2B755] to-[#D4AF37] hover:from-[#FFF2B8] hover:to-[#E2B755] text-[#250E0E] text-xs sm:text-sm font-semibold border-2 border-amber-200 shadow-md hover:shadow-lg transition transform hover:-translate-y-0.5 cursor-pointer"
+                >
+                  <CalendarPlus size={15} className="text-[#250E0E]" />
+                  <span>{lang === "kn" ? "ಆರತಕ್ಷತೆ (ಡಿಸೆಂಬರ್ 05)" : "Add Reception (Dec 05)"}</span>
+                </a>
+
+                <a
+                  href={muhurthamGoogleUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-[#FCE08B] via-[#E2B755] to-[#D4AF37] hover:from-[#FFF2B8] hover:to-[#E2B755] text-[#250E0E] text-xs sm:text-sm font-semibold border-2 border-amber-200 shadow-md hover:shadow-lg transition transform hover:-translate-y-0.5 cursor-pointer"
+                >
+                  <CalendarPlus size={15} className="text-[#250E0E]" />
+                  <span>{lang === "kn" ? "ಮುಹೂರ್ತ (ಡಿಸೆಂಬರ್ 06)" : "Add Muhurtham (Dec 06)"}</span>
+                </a>
+              </div>
             </div>
           </div>
         </section>
 
         {/* ══════════════════════════════════════════════════
-            3. WEDDING CELEBRATIONS & ITINERARY
+            5. A LITTLE NOTE FOR YOU (From our Hearts)
         ══════════════════════════════════════════════════ */}
         <section
-          id="events"
-          className="relative py-20 px-6 flex flex-col justify-center items-center bg-[#F9F5EE]"
+          id="note"
+          className="relative py-24 px-6 flex flex-col justify-center items-center bg-[#F9F5EE]"
         >
-          <div className="max-w-4xl w-full">
-            <div className="text-center mb-12">
-              <span className="text-amber-800 text-xs font-semibold tracking-widest uppercase">
-                {t.nav.events}
-              </span>
-              <h2 className="font-serif text-3xl sm:text-5xl font-bold text-[#7A1F1F] mt-1">
-                {t.events.title}
-              </h2>
-              <p className="text-gray-600 text-sm sm:text-base mt-2 max-w-xl mx-auto">
-                {t.events.subtitle}
+          <div className="max-w-3xl w-full text-center">
+            {/* HEADING: A LITTLE NOTE FOR YOU */}
+            <span className="text-xs sm:text-sm font-semibold tracking-[0.35em] uppercase block text-neutral-800">
+              {t.note.badge}
+            </span>
+
+            {/* BELOW THAT: From our Hearts in gold script */}
+            <h2 className="font-script text-4xl sm:text-6xl font-normal tracking-wide text-[#A6781D] my-2 drop-shadow-sm">
+              {t.note.title}
+            </h2>
+
+            {/* Heartfelt Message Box */}
+            <div className="mt-8 bg-white/95 rounded-3xl p-8 sm:p-14 shadow-2xl border border-amber-900/15 relative overflow-hidden text-center">
+              {/* Corner subtle ornamental borders */}
+              <div className="absolute top-5 left-5 w-12 h-12 border-t-2 border-l-2 border-amber-300/40 rounded-tl-xl pointer-events-none" />
+              <div className="absolute top-5 right-5 w-12 h-12 border-t-2 border-r-2 border-amber-300/40 rounded-tr-xl pointer-events-none" />
+              <div className="absolute bottom-5 left-5 w-12 h-12 border-b-2 border-l-2 border-amber-300/40 rounded-bl-xl pointer-events-none" />
+              <div className="absolute bottom-5 right-5 w-12 h-12 border-b-2 border-r-2 border-amber-300/40 rounded-br-xl pointer-events-none" />
+
+              <p className="font-script text-3xl sm:text-5xl text-[#A6781D] font-normal leading-tight my-1 drop-shadow-sm">
+                {t.note.hook1}
               </p>
-            </div>
 
-            <div className="grid md:grid-cols-2 gap-8">
-              {/* Reception Card */}
-              <div className="bg-white rounded-3xl p-8 sm:p-10 shadow-xl border border-amber-900/10 hover:shadow-2xl transition flex flex-col justify-between">
-                <div>
-                  <div className="w-12 h-12 rounded-2xl bg-amber-100/70 text-[#7A1F1F] flex items-center justify-center mb-5">
-                    <Calendar size={24} />
-                  </div>
-                  <h3 className="font-serif text-2xl sm:text-3xl font-bold text-[#7A1F1F]">
-                    {t.events.receptionTitle}
-                  </h3>
-                  <p className="text-gray-900 text-lg font-semibold mt-2">
-                    {t.events.receptionDate}
-                  </p>
-                  <p className="flex items-center gap-2 text-amber-800 font-medium mt-2">
-                    <Clock size={16} />
-                    <span>{t.events.receptionTime}</span>
-                  </p>
-                  <p className="text-gray-600 text-sm mt-4 leading-relaxed">
-                    {t.events.receptionDesc}
-                  </p>
-                </div>
+              <p className="font-serif italic text-base sm:text-lg text-neutral-800 font-medium tracking-wide mt-2 mb-6">
+                {t.note.hook2}
+              </p>
 
-                <div className="mt-8 pt-4 border-t border-amber-900/10 flex items-center justify-between text-xs text-gray-500">
-                  <span>Traditional &amp; Festive</span>
-                  <span className="text-[#7A1F1F] font-semibold">Dinner Included</span>
-                </div>
+              <div className="h-[1px] w-20 bg-gradient-to-r from-transparent via-[#C9932B]/50 to-transparent mx-auto my-6" />
+
+              <div className="space-y-4 max-w-2xl mx-auto text-sm sm:text-base text-neutral-700 font-light leading-relaxed">
+                <p>{t.note.p1}</p>
+                <p>{t.note.p2}</p>
+                <p>{t.note.p3}</p>
+                <p>{t.note.p4}</p>
               </div>
 
-              {/* Muhurtham Card */}
-              <div className="bg-white rounded-3xl p-8 sm:p-10 shadow-xl border border-rose-900/15 hover:shadow-2xl transition flex flex-col justify-between">
-                <div>
-                  <div className="w-12 h-12 rounded-2xl bg-rose-100/80 text-[#7A1F1F] flex items-center justify-center mb-5">
-                    <Calendar size={24} />
-                  </div>
-                  <h3 className="font-serif text-2xl sm:text-3xl font-bold text-[#7A1F1F]">
-                    {t.events.muhurthamTitle}
-                  </h3>
-                  <p className="text-gray-900 text-lg font-semibold mt-2">
-                    {t.events.muhurthamDate}
-                  </p>
-                  <p className="flex items-center gap-2 text-rose-800 font-medium mt-2">
-                    <Clock size={16} />
-                    <span>{t.events.muhurthamTime}</span>
-                  </p>
-                  <p className="text-gray-600 text-sm mt-4 leading-relaxed">
-                    {t.events.muhurthamDesc}
-                  </p>
-                </div>
-
-                <div className="mt-8 pt-4 border-t border-rose-900/10 flex items-center justify-between text-xs text-gray-500">
-                  <span>Auspicious Dhanur Lagna</span>
-                  <span className="text-[#7A1F1F] font-semibold">Breakfast &amp; Lunch</span>
-                </div>
+              {/* Signature */}
+              <div className="mt-8 pt-6 border-t border-amber-900/10">
+                <h3 className="font-serif italic text-2xl sm:text-3xl font-bold text-[#8E6314] tracking-wide">
+                  {t.note.signature}
+                </h3>
+                <p className="font-sans italic font-light tracking-wide text-xs sm:text-sm text-neutral-500 mt-2">
+                  {t.note.closing}
+                </p>
               </div>
             </div>
           </div>
         </section>
 
         {/* ══════════════════════════════════════════════════
-            4. OUR JOURNEY (Story with Photos)
-        ══════════════════════════════════════════════════ */}
-        <section
-          id="journey"
-          className="relative py-24 px-6 flex flex-col justify-center items-center"
-        >
-          <div className="max-w-5xl w-full">
-            <div className="text-center mb-12">
-              <span className="text-amber-800 text-xs font-semibold tracking-widest uppercase">
-                {t.nav.journey}
-              </span>
-              <h2 className="font-serif text-3xl sm:text-5xl font-bold text-[#7A1F1F] mt-1">
-                {t.journey.title}
-              </h2>
-              <p className="text-gray-600 text-sm sm:text-base mt-2 max-w-xl mx-auto italic font-serif">
-                {t.journey.quote}
-              </p>
-            </div>
-
-            <div className="space-y-10">
-              {/* Story Item 1: Lotus Boat */}
-              <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xl border border-amber-900/10 grid md:grid-cols-2 gap-8 items-center">
-                <div className="relative h-64 sm:h-84 w-full rounded-2xl overflow-hidden shadow-inner">
-                  <Image
-                    src="/images/lotus-boat.jpg"
-                    alt="By the Lotus Pond"
-                    fill
-                    sizes="(max-width: 768px) 100vw, 50vw"
-                    className="object-cover hover:scale-105 transition-transform duration-700"
-                  />
-                </div>
-                <div className="space-y-3 sm:px-4">
-                  <span className="text-amber-700 text-xs font-semibold tracking-widest uppercase">
-                    Chapter I
-                  </span>
-                  <h3 className="font-serif text-2xl sm:text-3xl font-bold text-[#7A1F1F]">
-                    {t.journey.story1Title}
-                  </h3>
-                  <p className="text-gray-600 leading-relaxed text-sm sm:text-base">
-                    {t.journey.story1Desc}
-                  </p>
-                </div>
-              </div>
-
-              {/* Story Item 2: Reflection */}
-              <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xl border border-amber-900/10 grid md:grid-cols-2 gap-8 items-center">
-                <div className="space-y-3 sm:px-4 order-2 md:order-1">
-                  <span className="text-amber-700 text-xs font-semibold tracking-widest uppercase">
-                    Chapter II
-                  </span>
-                  <h3 className="font-serif text-2xl sm:text-3xl font-bold text-[#7A1F1F]">
-                    {t.journey.story2Title}
-                  </h3>
-                  <p className="text-gray-600 leading-relaxed text-sm sm:text-base">
-                    {t.journey.story2Desc}
-                  </p>
-                </div>
-                <div className="relative h-64 sm:h-84 w-full rounded-2xl overflow-hidden shadow-inner order-1 md:order-2">
-                  <Image
-                    src="/images/reflection.jpg"
-                    alt="Reflections of Togetherness"
-                    fill
-                    sizes="(max-width: 768px) 100vw, 50vw"
-                    className="object-cover hover:scale-105 transition-transform duration-700"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ══════════════════════════════════════════════════
-            5. CAPTURED MOMENTS (Photo Gallery)
+            5. CAPTURED MOMENTS (Photo Gallery - Luxury Gold Theme)
         ══════════════════════════════════════════════════ */}
         <section
           id="gallery"
-          className="relative py-24 px-6 flex flex-col justify-center items-center bg-[#F9F5EE]"
+          className="relative py-24 px-6 flex flex-col justify-center items-center bg-[#FDFBF7] overflow-hidden"
         >
-          <div className="max-w-5xl w-full">
-            <div className="text-center mb-10">
-              <span className="text-amber-800 text-xs font-semibold tracking-widest uppercase">
+          {/* Subtle Artistic Gold Teardrops Scattered on Background */}
+          <GoldTeardrop className="absolute top-12 left-[6%] w-5 h-7 opacity-20 rotate-12 pointer-events-none" />
+          <GoldTeardrop className="absolute top-20 right-[8%] w-6 h-8 opacity-25 -rotate-12 pointer-events-none" />
+          <GoldTeardrop className="absolute bottom-16 left-[8%] w-4 h-6 opacity-20 -rotate-45 pointer-events-none" />
+          <GoldTeardrop className="absolute bottom-12 right-[6%] w-5 h-7 opacity-25 rotate-45 pointer-events-none" />
+
+          <div className="max-w-5xl w-full relative z-10">
+            {/* Gallery Title in Charcoal & Gold Cursive Script */}
+            <div className="text-center mb-12">
+              <span className="text-xs sm:text-sm font-semibold tracking-[0.3em] uppercase block text-neutral-800">
                 {t.nav.gallery}
               </span>
-              <h2 className="font-serif text-3xl sm:text-5xl font-bold text-[#7A1F1F] mt-1">
+              <h2 className="font-script text-4xl sm:text-6xl text-[#A6781D] my-1 font-normal tracking-wide drop-shadow-sm">
                 {t.gallery.title}
               </h2>
-              <p className="text-gray-600 text-sm sm:text-base mt-2">
-                {t.gallery.subtitle}
+              <p className="font-sans italic font-light tracking-[0.06em] text-xs sm:text-sm text-neutral-600 mt-2">
+                &ldquo;{t.gallery.subtitle}&rdquo;
               </p>
-              <p className="text-xs text-amber-800/80 mt-1 font-medium">
-                {t.gallery.tapHint}
+              <p className="text-[11px] text-[#A6781D] font-medium tracking-wider uppercase mt-2 flex items-center justify-center gap-1.5">
+                <Sparkles size={13} className="text-[#D4AF37]" />
+                <span>{t.gallery.tapHint}</span>
               </p>
             </div>
 
-            {/* Gallery Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
-              {galleryImages.map((img, idx) => (
-                <div
+            {/* NATURAL CINEMATIC WEDDING ALBUM SHOWCASE */}
+            <div className="relative max-w-xl sm:max-w-2xl w-full mx-auto px-4">
+              {/* Luxury Muted Gold Photo Card */}
+              <div
+                onClick={() => setSelectedPhoto(galleryImages[activeSlide].src)}
+                className="group relative bg-white/95 rounded-3xl p-3 sm:p-5 shadow-[0_20px_50px_rgba(201,147,43,0.18)] border-2 border-[#E2C799]/50 hover:border-[#D4AF37] transition-all duration-500 cursor-pointer overflow-hidden select-none"
+              >
+                {/* Natural Photo Frame - Pure Fit With Zero Cropping */}
+                <div className="relative h-[380px] sm:h-[480px] md:h-[520px] w-full rounded-2xl overflow-hidden bg-[#180A0A] flex items-center justify-center border border-amber-900/10">
+                  {/* Ambient Soft Blurred Glow of Photo Behind */}
+                  <div className="absolute inset-0 scale-110 blur-2xl opacity-40 pointer-events-none">
+                    <Image
+                      key={`bg-${activeSlide}`}
+                      src={`/images/${galleryImages[activeSlide].src}`}
+                      alt=""
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+
+                  {/* Main Photo - 100% Fit to Frame with Zero Cropping */}
+                  <Image
+                    key={activeSlide}
+                    src={`/images/${galleryImages[activeSlide].src}`}
+                    alt={galleryImages[activeSlide].title}
+                    fill
+                    priority
+                    sizes="(max-width: 768px) 100vw, 680px"
+                    className="object-contain object-center relative z-10 transition-all duration-500 drop-shadow-md"
+                  />
+                  {/* Subtle ambient bottom gradient */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none z-10" />
+                </div>
+
+                {/* Natural Caption & Counter */}
+                <div className="mt-4 flex items-center justify-between px-2 sm:px-3">
+                  <div>
+                    <p className="font-serif italic text-lg sm:text-xl font-semibold text-neutral-900 tracking-wide">
+                      {galleryImages[activeSlide].title}
+                    </p>
+                    <p className="text-[11px] font-sans font-medium tracking-[0.2em] text-[#A6781D] uppercase mt-0.5">
+                      #HARSHSQUARED
+                    </p>
+                  </div>
+                  <span className="font-mono text-xs sm:text-sm font-semibold text-neutral-500 bg-amber-50/80 px-3.5 py-1 rounded-full border border-amber-200/80 shadow-xs">
+                    {String(activeSlide + 1).padStart(2, "0")} / {String(galleryImages.length).padStart(2, "0")}
+                  </span>
+                </div>
+              </div>
+
+              {/* Floating Next/Prev Arrow Buttons */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  prevSlide();
+                }}
+                className="absolute -left-2 sm:-left-6 top-1/2 -translate-y-1/2 w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-white/95 text-[#8E6314] border-2 border-[#E2C799]/70 shadow-xl hover:bg-amber-50 hover:scale-110 active:scale-95 transition-all flex items-center justify-center cursor-pointer z-20"
+                aria-label="Previous photo"
+              >
+                <ChevronLeft size={22} />
+              </button>
+
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  nextSlide();
+                }}
+                className="absolute -right-2 sm:-right-6 top-1/2 -translate-y-1/2 w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-white/95 text-[#8E6314] border-2 border-[#E2C799]/70 shadow-xl hover:bg-amber-50 hover:scale-110 active:scale-95 transition-all flex items-center justify-center cursor-pointer z-20"
+                aria-label="Next photo"
+              >
+                <ChevronRight size={22} />
+              </button>
+            </div>
+
+            {/* Indicator Bar Below: 6 Dots / Small Lines that highlight as they slide */}
+            <div className="flex items-center justify-center gap-2 mt-6">
+              {galleryImages.map((_, idx) => (
+                <button
                   key={idx}
-                  onClick={() => setSelectedPhoto(img.src)}
-                  className="group relative h-60 sm:h-72 rounded-2xl overflow-hidden shadow-lg border border-amber-900/10 cursor-pointer bg-gray-200"
+                  type="button"
+                  onClick={() => setActiveSlide(idx)}
+                  className={`transition-all duration-500 rounded-full h-2 cursor-pointer ${
+                    activeSlide === idx
+                      ? "w-8 sm:w-10 bg-gradient-to-r from-[#FCE08B] via-[#E2B755] to-[#D4AF37] shadow-md"
+                      : "w-2 sm:w-2.5 bg-amber-200/80 hover:bg-amber-300"
+                  }`}
+                  aria-label={`Go to slide ${idx + 1}`}
+                />
+              ))}
+            </div>
+
+            {/* Thumbnail Preview Strip */}
+            <div className="flex items-center justify-center gap-2 sm:gap-3 mt-5 overflow-x-auto py-1">
+              {galleryImages.map((img, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => setActiveSlide(idx)}
+                  className={`relative w-12 h-14 sm:w-14 sm:h-16 rounded-xl overflow-hidden border-2 transition-all duration-300 cursor-pointer shrink-0 ${
+                    activeSlide === idx
+                      ? "border-[#B38728] shadow-md scale-105"
+                      : "border-transparent opacity-60 hover:opacity-100"
+                  }`}
+                  aria-label={`Thumbnail ${idx + 1}`}
                 >
                   <Image
                     src={`/images/${img.src}`}
                     alt={img.title}
                     fill
-                    sizes="(max-width: 768px) 50vw, 33vw"
-                    className="object-cover group-hover:scale-108 transition-transform duration-700 ease-out"
+                    sizes="60px"
+                    className="object-cover"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
-                    <span className="font-serif text-white text-sm sm:text-base tracking-wide drop-shadow">
-                      {img.title}
-                    </span>
-                  </div>
-                </div>
+                </button>
               ))}
             </div>
           </div>
@@ -691,15 +1429,19 @@ export default function Home() {
           className="relative py-24 px-6 flex flex-col justify-center items-center"
         >
           <div className="max-w-4xl w-full bg-white/95 rounded-3xl p-8 sm:p-14 shadow-2xl border border-amber-900/15 text-center">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-rose-100 text-[#7A1F1F] mb-4">
-              <MapPin size={28} />
-            </div>
+            {/* Top Badge: "THE VENUE" in charcoal */}
+            <span className="text-xs sm:text-sm font-semibold tracking-[0.3em] uppercase block text-neutral-800">
+              {t.venue.badge}
+            </span>
 
-            <h2 className="font-serif text-3xl sm:text-5xl font-bold text-[#7A1F1F]">
+            {/* Title in Radiant Gold Cursive Script (same as other pages) */}
+            <h2 className="font-script text-4xl sm:text-6xl text-[#A6781D] my-1 font-normal tracking-wide drop-shadow-sm">
               {t.venue.title}
             </h2>
-            <p className="text-gray-600 text-sm sm:text-base mt-2">
-              {t.venue.subtitle}
+
+            {/* Subtitle in Complementary Italic Light Font */}
+            <p className="font-sans italic font-light tracking-[0.06em] text-xs sm:text-sm text-neutral-600 mt-2">
+              &ldquo;{t.venue.subtitle}&rdquo;
             </p>
 
             <div className="my-6 py-6 border-y border-amber-900/10">
@@ -712,17 +1454,17 @@ export default function Home() {
                 {t.venue.addressLine2}
               </p>
 
-              {/* Direct Google Maps Action Button */}
+              {/* Direct Google Maps Action Button in Gold Theme */}
               <div className="mt-6">
                 <a
                   href="https://maps.app.goo.gl/JkBY1LKde4m9sWLs7"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 bg-[#7A1F1F] hover:bg-[#5C1616] text-white px-8 py-3.5 rounded-full font-semibold shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5 cursor-pointer text-sm sm:text-base"
+                  className="inline-flex items-center gap-2 bg-gradient-to-r from-[#FCE08B] via-[#E2B755] to-[#D4AF37] hover:from-[#FFF2B8] hover:to-[#E2B755] text-[#250E0E] px-8 py-3.5 rounded-full font-semibold border-2 border-amber-200 shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5 cursor-pointer text-sm sm:text-base"
                 >
-                  <MapPin size={18} />
+                  <MapPin size={18} className="text-[#250E0E]" />
                   <span>{t.venue.mapsBtn}</span>
-                  <ExternalLink size={16} />
+                  <ExternalLink size={16} className="text-[#250E0E]" />
                 </a>
               </div>
             </div>
@@ -740,10 +1482,192 @@ export default function Home() {
               />
             </div>
 
-            {/* Family Closing Greetings */}
-            <p className="font-serif italic text-[#7A1F1F] text-base sm:text-lg mt-6">
+            {/* Family Closing Greetings in Warm Gold */}
+            <p className="font-serif italic text-[#8E6314] text-base sm:text-lg mt-6">
               {t.venue.familyClosing}
             </p>
+          </div>
+        </section>
+
+        {/* ══════════════════════════════════════════════════
+            7. GUEST WISHES & BLESSINGS WALL
+        ══════════════════════════════════════════════════ */}
+        <section
+          id="wishes"
+          className="relative py-24 px-6 flex flex-col justify-center items-center bg-[#F9F5EE]"
+        >
+          <div className="max-w-5xl w-full">
+            <div className="text-center mb-12">
+              {/* Top Badge: "GUESTBOOK" in charcoal */}
+              <span className="text-xs sm:text-sm font-semibold tracking-[0.3em] uppercase block text-neutral-800">
+                {t.wishes.badge}
+              </span>
+
+              {/* Title in Radiant Gold Cursive Script (same as other pages) */}
+              <h2 className="font-script text-4xl sm:text-6xl text-[#A6781D] my-1 font-normal tracking-wide drop-shadow-sm">
+                {t.wishes.title}
+              </h2>
+
+              {/* Subtitle in Complementary Italic Light Font */}
+              <p className="font-sans italic font-light tracking-[0.06em] text-xs sm:text-sm text-neutral-600 mt-2 max-w-xl mx-auto">
+                &ldquo;{t.wishes.subtitle}&rdquo;
+              </p>
+            </div>
+
+            {/* Post A Wish Form Card */}
+            <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xl border border-amber-900/10 mb-12 max-w-2xl mx-auto">
+              <h3 className="font-serif text-xl sm:text-2xl font-bold text-[#8E6314] mb-4 flex items-center gap-2">
+                <Sparkles size={18} className="text-[#E2B755]" />
+                <span>{t.wishes.formTitle}</span>
+              </h3>
+
+              <form onSubmit={handlePostWish} className="space-y-4">
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-amber-900 mb-1">
+                      {t.wishes.nameLabel} <span className="text-amber-700">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={newWishName}
+                      onChange={(e) => setNewWishName(e.target.value)}
+                      placeholder={t.wishes.namePlaceholder}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 focus:border-[#B38728] focus:ring-2 focus:ring-[#B38728]/20 outline-none text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-amber-900 mb-1">
+                      {t.wishes.relationLabel}
+                    </label>
+                    <select
+                      value={newWishRelation || t.wishes.relations[0]}
+                      onChange={(e) => setNewWishRelation(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 focus:border-[#B38728] focus:ring-2 focus:ring-[#B38728]/20 outline-none text-sm bg-white"
+                    >
+                      {t.wishes.relations.map((rel, idx) => (
+                        <option key={idx} value={rel}>
+                          {rel}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Blessing Mood Tag */}
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-amber-900 mb-1.5">
+                    {t.wishes.tagLabel}
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {t.wishes.tags.map((tag, idx) => {
+                      const isSelected = (newWishTag || t.wishes.tags[0]) === tag;
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => setNewWishTag(tag)}
+                          className={`px-3 py-1.5 rounded-full text-xs font-medium transition cursor-pointer border ${
+                            isSelected
+                              ? "bg-amber-100/90 border-[#B38728] text-[#8E6314] font-semibold"
+                              : "bg-gray-50 border-gray-200 text-gray-700 hover:border-amber-300"
+                          }`}
+                        >
+                          {tag}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Message Textarea */}
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-amber-900 mb-1">
+                    {t.wishes.msgLabel} <span className="text-amber-700">*</span>
+                  </label>
+                  <textarea
+                    rows={3}
+                    required
+                    value={newWishMessage}
+                    onChange={(e) => setNewWishMessage(e.target.value)}
+                    placeholder={t.wishes.msgPlaceholder}
+                    className="w-full p-3.5 rounded-xl border border-gray-300 focus:border-[#B38728] focus:ring-2 focus:ring-[#B38728]/20 outline-none text-sm"
+                  />
+                </div>
+
+                <div className="text-right">
+                  <button
+                    type="submit"
+                    className="inline-flex items-center gap-2 bg-gradient-to-r from-[#FCE08B] via-[#E2B755] to-[#D4AF37] hover:from-[#FFF2B8] hover:to-[#E2B755] text-[#250E0E] px-7 py-3 rounded-full font-semibold border-2 border-amber-200 shadow-md hover:shadow-lg transition cursor-pointer text-sm"
+                  >
+                    <Heart size={15} className="fill-[#250E0E] text-[#250E0E]" />
+                    <span>{t.wishes.postBtn}</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* Wishes Grid */}
+            <div className="grid md:grid-cols-2 gap-6">
+              {wishesList.map((wish) => {
+                const isLiked = likedWishIds.includes(wish.id);
+                return (
+                  <div
+                    key={wish.id}
+                    className="bg-white rounded-3xl p-6 sm:p-7 shadow-lg border border-amber-900/10 hover:shadow-xl transition flex flex-col justify-between"
+                  >
+                    <div>
+                      {/* Top Mood & Timestamp */}
+                      <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
+                        <span className="px-2.5 py-1 rounded-full bg-amber-50 text-amber-900 border border-amber-200 font-medium">
+                          {wish.tag}
+                        </span>
+                        <span className="text-gray-400 font-light">
+                          {wish.createdAt}
+                        </span>
+                      </div>
+
+                      {/* Message */}
+                      <p className="text-gray-700 font-serif italic text-base sm:text-lg leading-relaxed mb-4">
+                        &quot;{wish.message}&quot;
+                      </p>
+                    </div>
+
+                    {/* Bottom Author & Likes */}
+                    <div className="pt-3 border-t border-amber-900/10 flex items-center justify-between">
+                      <div>
+                        <h4 className="font-semibold text-gray-900 text-sm sm:text-base">
+                          {wish.name}
+                        </h4>
+                        <span className="text-xs text-amber-800">
+                          {wish.relation}
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleToggleLikeWish(wish.id)}
+                        className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition cursor-pointer ${
+                          isLiked
+                            ? "bg-rose-100 text-rose-700 border border-rose-300"
+                            : "bg-gray-50 hover:bg-rose-50 text-gray-600 hover:text-rose-600 border border-gray-200"
+                        }`}
+                        aria-label="Send Love"
+                      >
+                        <Heart
+                          size={14}
+                          className={
+                            isLiked ? "fill-rose-600 text-rose-600" : ""
+                          }
+                        />
+                        <span>{wish.likes}</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </section>
       </main>
@@ -753,10 +1677,41 @@ export default function Home() {
         <p className="font-serif italic text-2xl text-[#FCE08B]">
           {t.footer.couple}
         </p>
+        <p className="text-xs sm:text-sm font-sans font-medium tracking-[0.25em] text-[#FCE08B] uppercase mt-1">
+          #HARSHSQUARED
+        </p>
         <p className="mt-2 text-xs sm:text-sm text-gray-400">
           {t.footer.subtext}
         </p>
       </footer>
+
+      {/* ─── HIDDEN AUDIO ELEMENT & FLOATING MUSIC TOGGLE ─── */}
+      <audio
+        ref={audioRef}
+        src="/audio/reunited.mp3"
+        loop
+        preload="auto"
+      />
+
+      {/* Floating Gold Music Control Button (Clean Circular Music On/Off Toggle) */}
+      <div className="fixed bottom-6 right-6 z-40">
+        <button
+          type="button"
+          onClick={toggleAudio}
+          className="group w-12 h-12 rounded-full bg-[#250E0E]/90 hover:bg-[#3D1414] text-[#FCE08B] border-2 border-amber-300/40 shadow-2xl backdrop-blur-md transition-all duration-300 transform hover:scale-110 active:scale-95 cursor-pointer flex items-center justify-center relative"
+          aria-label={isPlaying ? "Turn Music Off" : "Turn Music On"}
+          title={isPlaying ? "Music On" : "Music Off"}
+        >
+          {isPlaying ? (
+            <div className="relative flex items-center justify-center">
+              <div className="absolute -inset-1 rounded-full bg-amber-400/20 animate-ping opacity-60" />
+              <Volume2 size={20} className="text-[#FCE08B]" />
+            </div>
+          ) : (
+            <VolumeX size={20} className="text-gray-400" />
+          )}
+        </button>
+      </div>
 
       {/* ─── FULLSCREEN PHOTO LIGHTBOX MODAL ─── */}
       {selectedPhoto && (
