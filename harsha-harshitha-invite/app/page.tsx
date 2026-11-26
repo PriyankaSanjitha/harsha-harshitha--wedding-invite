@@ -410,39 +410,44 @@ export default function Home() {
   useEffect(() => {
     let isCancelled = false;
 
-    // 1. First fetch real-time cloud wishes
-    fetch("/api/wishes")
-      .then((res) => res.json())
-      .then((data) => {
-        if (!isCancelled && data.isCloud && Array.isArray(data.wishes) && data.wishes.length > 0) {
-          const cloudFormatted: WishItem[] = data.wishes.map((w: {
-            id: string;
-            name: string;
-            relation: string;
-            tag: string;
-            message: string;
-            likes?: number;
-          }) => ({
-            id: w.id,
-            name: w.name,
-            relation: w.relation,
-            tag: w.tag,
-            message: w.message,
-            likes: w.likes ?? 1,
-            createdAt: lang === "kn" ? "ಈಗಷ್ಟೇ" : "Recently",
-            isCustom: true,
-          }));
+    // 1. Fetch real-time cloud wishes with no-store cache
+    const loadCloudWishes = () => {
+      fetch("/api/wishes", { cache: "no-store" })
+        .then((res) => res.json())
+        .then((data) => {
+          if (!isCancelled && data.isCloud && Array.isArray(data.wishes) && data.wishes.length > 0) {
+            const cloudFormatted: WishItem[] = data.wishes.map((w: {
+              id: string;
+              name: string;
+              relation: string;
+              tag: string;
+              message: string;
+              likes?: number;
+            }) => ({
+              id: w.id,
+              name: w.name,
+              relation: w.relation,
+              tag: w.tag,
+              message: w.message,
+              likes: w.likes ?? 1,
+              createdAt: lang === "kn" ? "ಈಗಷ್ಟೇ" : "Recently",
+              isCustom: true,
+            }));
 
-          setWishesList((prev) => {
-            const cloudIds = new Set(cloudFormatted.map((f) => f.id));
-            const nonDuplicatePresets = prev.filter((p) => !cloudIds.has(p.id) && !p.isCustom);
-            return [...cloudFormatted, ...nonDuplicatePresets];
-          });
-        }
-      })
-      .catch(() => {
-        // Fall back to localStorage below
-      });
+            setWishesList((prev) => {
+              const cloudIds = new Set(cloudFormatted.map((f) => f.id));
+              const nonDuplicatePresets = prev.filter((p) => !cloudIds.has(p.id) && !p.isCustom);
+              return [...cloudFormatted, ...nonDuplicatePresets];
+            });
+          }
+        })
+        .catch(() => {
+          // Fall back to localStorage below
+        });
+    };
+
+    loadCloudWishes();
+    const pollInterval = setInterval(loadCloudWishes, 12000);
 
     // 2. Hydrate from localStorage for offline / preset support
     const timer = setTimeout(() => {
@@ -469,6 +474,7 @@ export default function Home() {
 
     return () => {
       isCancelled = true;
+      clearInterval(pollInterval);
       clearTimeout(timer);
     };
   }, [lang]);
@@ -1217,14 +1223,9 @@ export default function Home() {
           <GoldTeardrop className="absolute top-1/2 right-[5%] w-4 h-6 opacity-20 -rotate-6 pointer-events-none hidden sm:block" />
 
           <div className="max-w-4xl w-full text-center relative z-10">
-            {/* Top most one: "The Date" in charcoal */}
-            <span className="text-xs sm:text-sm font-semibold tracking-[0.3em] uppercase block text-neutral-800">
-              {t.saveTheDate.badge}
-            </span>
-
-            {/* Second "Save the Date": same font as bride/groom's name in gold */}
+            {/* "Save the Date": same font as bride/groom's name in gold */}
             <h2
-              className={`text-[#A6781D] my-2 drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)] ${
+              className={`text-[#A6781D] mb-3 sm:mb-4 drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)] ${
                 lang === "kn"
                   ? "font-serif italic font-bold text-3xl sm:text-5xl"
                   : "font-script text-5xl sm:text-7xl font-normal tracking-wide"
