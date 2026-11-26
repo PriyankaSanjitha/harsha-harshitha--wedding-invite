@@ -210,20 +210,27 @@ function GoldScratchCard({
     ctx.shadowOffsetY = 1;
 
     ctx.fillStyle = "#4A2F0F";
-    ctx.font = "italic 24px 'Great Vibes', cursive, 'Playfair Display', serif";
+    ctx.font = isKannada
+      ? "bold 16px 'Playfair Display', serif"
+      : "italic 20px 'Great Vibes', cursive, 'Playfair Display', serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText("Scratch to Reveal", width / 2, height / 2 - 12);
+    ctx.fillText(
+      isKannada ? "ತಿಳಿಯಲು ಒತ್ತಿ" : "Scratch to Reveal",
+      width / 2,
+      height / 2 - 10
+    );
 
     // Diamonds on left and right of "Scratch to Reveal"
-    drawDiamond(width / 2 - 112, height / 2 - 12, 6);
-    drawDiamond(width / 2 + 112, height / 2 - 12, 6);
+    const diamondOffset = isKannada ? 74 : 88;
+    drawDiamond(width / 2 - diamondOffset, height / 2 - 10, 5);
+    drawDiamond(width / 2 + diamondOffset, height / 2 - 10, 5);
 
     ctx.fillStyle = "#5E3D15";
-    ctx.font = "italic 14px 'Playfair Display', serif";
-    ctx.fillText(title, width / 2, height / 2 + 18);
+    ctx.font = "italic 13px 'Playfair Display', serif";
+    ctx.fillText(title, width / 2, height / 2 + 16);
     ctx.restore();
-  }, [title]);
+  }, [title, isKannada]);
 
   const handlePointer = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (isScratched) return;
@@ -241,46 +248,46 @@ function GoldScratchCard({
 
     ctx.globalCompositeOperation = "destination-out";
     ctx.beginPath();
-    ctx.arc(x, y, 28, 0, Math.PI * 2);
+    ctx.arc(x, y, 22, 0, Math.PI * 2);
     ctx.fill();
 
     scratchCountRef.current += 1;
-    if (scratchCountRef.current > 38 && !isScratched) {
+    if (scratchCountRef.current > 24 && !isScratched) {
       setIsScratched(true);
     }
   };
 
   return (
-    <div className="flex flex-col items-center w-full max-w-sm mx-auto">
+    <div className="flex flex-col items-center w-full max-w-[270px] sm:max-w-[300px] mx-auto">
       {/* The Interactive Scratch Card with Soft Gold Shadow & White/Beige Card */}
       <div
-        className={`relative w-full h-72 sm:h-80 rounded-3xl overflow-hidden select-none transition-all duration-700 ease-out ${
+        className={`relative w-full h-52 sm:h-58 rounded-2xl sm:rounded-3xl overflow-hidden select-none transition-all duration-700 ease-out ${
           isScratched
-            ? "shadow-[0_18px_50px_rgba(201,147,43,0.32)] border-2 border-[#D4AF37] scale-[1.02] bg-[#FCFAF6] text-[#2B1B17]"
-            : "shadow-[0_12px_40px_rgba(201,147,43,0.22)] border-2 border-[#E2C799]/50 bg-[#FCFAF6] text-[#2B1B17]"
+            ? "shadow-[0_14px_40px_rgba(201,147,43,0.3)] border-2 border-[#D4AF37] scale-[1.02] bg-[#FCFAF6] text-[#2B1B17]"
+            : "shadow-[0_10px_30px_rgba(201,147,43,0.2)] border-2 border-[#E2C799]/50 bg-[#FCFAF6] text-[#2B1B17]"
         }`}
       >
         {/* UNDERNEATH REVEALED CONTENT (White/Beige card, no calendar icon, no 'The Date', no venue) */}
-        <div className="absolute inset-0 p-6 sm:p-8 flex flex-col justify-center text-center items-center z-0 space-y-3">
+        <div className="absolute inset-0 p-4 sm:p-5 flex flex-col justify-center text-center items-center z-0 space-y-2">
           <div>
-            <h4 className="font-serif text-2xl sm:text-3xl font-bold text-neutral-900 tracking-wide">
+            <h4 className="font-serif text-xl sm:text-2xl font-bold text-neutral-900 tracking-wide">
               {title}
             </h4>
-            <div className="h-[1px] w-16 bg-[#C9932B]/40 mx-auto my-3" />
+            <div className="h-[1px] w-12 bg-[#C9932B]/40 mx-auto my-2" />
 
             {/* Date in Gold Italic Script (similar to bride & groom names) */}
             <p
-              className={`font-script text-3xl sm:text-4xl text-[#A6781D] font-normal leading-tight drop-shadow-sm ${
+              className={`font-script text-2xl sm:text-3xl text-[#A6781D] font-normal leading-tight drop-shadow-sm ${
                 isKannada
-                  ? "font-serif italic font-bold text-xl sm:text-2xl"
+                  ? "font-serif italic font-bold text-lg sm:text-xl"
                   : ""
               }`}
             >
               {date}
             </p>
 
-            <p className="text-xs sm:text-sm text-neutral-600 mt-2 flex items-center justify-center gap-1.5 font-medium">
-              <Clock size={14} className="text-[#C9932B]" />
+            <p className="text-[11px] sm:text-xs text-neutral-600 mt-1.5 flex items-center justify-center gap-1.5 font-medium">
+              <Clock size={13} className="text-[#C9932B]" />
               <span>{time}</span>
             </p>
           </div>
@@ -294,18 +301,18 @@ function GoldScratchCard({
             {/* Diagonal Golden Light Sheen sweep across card */}
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-200/35 to-transparent -skew-x-12 animate-[shimmer_1.5s_ease-out_forwards]" />
             {/* Delicate Micro-Glimmers */}
-            <span className="absolute top-4 right-6 text-[#C9932B] text-xs opacity-75 animate-pulse">✦</span>
-            <span className="absolute bottom-5 left-6 text-[#C9932B] text-xs opacity-75 animate-pulse">✦</span>
-            <span className="absolute top-1/2 left-4 text-[#D4AF37] text-[10px] opacity-60 animate-ping">✧</span>
-            <span className="absolute top-1/3 right-5 text-[#D4AF37] text-[10px] opacity-60 animate-ping">✧</span>
+            <span className="absolute top-3 right-5 text-[#C9932B] text-xs opacity-75 animate-pulse">✦</span>
+            <span className="absolute bottom-4 left-5 text-[#C9932B] text-xs opacity-75 animate-pulse">✦</span>
+            <span className="absolute top-1/2 left-3 text-[#D4AF37] text-[10px] opacity-60 animate-ping">✧</span>
+            <span className="absolute top-1/3 right-4 text-[#D4AF37] text-[10px] opacity-60 animate-ping">✧</span>
           </div>
         )}
 
         {/* TOP CLASSY SUBTLE GOLD SCRATCH CANVAS LAYER */}
         <canvas
           ref={canvasRef}
-          width={360}
-          height={320}
+          width={300}
+          height={232}
           onPointerDown={(e) => {
             isDrawingRef.current = true;
             handlePointer(e);
@@ -326,8 +333,8 @@ function GoldScratchCard({
       </div>
 
       {/* BELOW THE CARD: "SWIPE YOUR FINGER ACROSS THE GOLD" / "SEE YOU THERE ✨" */}
-      <div className="mt-3.5 flex flex-col items-center text-center">
-        <p className="font-sans font-light tracking-[0.2em] text-[11px] sm:text-xs text-neutral-600 uppercase">
+      <div className="mt-3 flex flex-col items-center text-center">
+        <p className="font-sans font-light tracking-[0.18em] text-[10px] sm:text-[11px] text-neutral-600 uppercase">
           {isScratched ? isRevealedText : bottomHint}
         </p>
       </div>
@@ -508,6 +515,7 @@ export default function Home() {
         togetherWithFamilies: "Together with their families,",
         groomsParents: "Smt. Gowramma T. & Sri. Rajanna H.T.",
         bridesParents: "Smt. Lalitha H.C. & Sri. Mohan Kumar D.",
+        andSeparator: "and",
         cordiallyInvite:
           "Cordially invite you to celebrate the wedding of their children",
         weddingDay: "Sunday, 06 December 2026",
@@ -611,7 +619,7 @@ export default function Home() {
       },
       hero: {
         taglineBadge: "ಒಂದು ಸುಂದರ ಪ್ರೇಮಕಥೆಯ ಆರಂಭ...",
-        quote1: "ಇದು ಒಂದು ಸುಂದರ ಬಂಧದ ಆರಂಭ...!",
+        quote1: "ಒಂದು ಸುಂದರ ಬಂಧದ ಆರಂಭ...!",
         quote2:
           "ವಿಧಿಯಿಂದ ಬರೆಯಲ್ಪಟ್ಟ ಈ ಸುಂದರ ಪಯಣದ ಸಂಭ್ರಮದಲ್ಲಿ ನಮ್ಮೊಂದಿಗೆ ಕೈಜೋಡಿಸಿ.",
         cta: "ಆಹ್ವಾನ ಪತ್ರಿಕೆ ತೆರೆಯಿರಿ",
@@ -630,17 +638,18 @@ export default function Home() {
         togetherWithFamilies: "ತಮ್ಮ ಕುಟುಂಬದವರೊಂದಿಗೆ,",
         groomsParents: "ಶ್ರೀಮತಿ ಗೌರಮ್ಮ ಟಿ. & ಶ್ರೀ ರಾಜಣ್ಣ ಹೆಚ್.ಟಿ.",
         bridesParents: "ಶ್ರೀಮತಿ ಲಲಿತಾ ಹೆಚ್.ಸಿ. & ಶ್ರೀ ಮೋಹನ್ ಕುಮಾರ್ ಡಿ.",
+        andSeparator: "ಹಾಗೂ",
         cordiallyInvite:
           "ತಮ್ಮ ಮಕ್ಕಳ ವಿವಾಹ ಮಹೋತ್ಸವಕ್ಕೆ ತಮ್ಮನ್ನು ಪ್ರೀತಿಪೂರ್ವಕವಾಗಿ ಆಹ್ವಾನಿಸುತ್ತಾರೆ",
         weddingDay: "ಭಾನುವಾರ, 06 ಡಿಸೆಂಬರ್ 2026",
         muhurthamTime: "ಮದುವೆ ಮುಹೂರ್ತ: ಬೆಳಗ್ಗೆ 8:25 ರಿಂದ 9:25 ರವರೆಗೆ (ಧನುರ್ ಲಗ್ನ)",
       },
       saveTheDate: {
-        badge: "The Date",
-        title: "Save the Date",
-        tagline: "ನಮ್ಮ ವಿಶೇಷ ದಿನಾಂಕವನ್ನು ತಿಳಿಯಲು ಚಿನ್ನದ ಹೊದಿಕೆಯನ್ನು ಉಜ್ಜಿ",
-        swipeBottomHint: "SWIPE YOUR FINGER ACROSS THE GOLD",
-        revealedBadge: "✨ SEE YOU THERE ✨",
+        badge: "ದಿನಾಂಕ",
+        title: "ಶುಭ ದಿನದ ಆಗಮನ",
+        tagline: "ನಮ್ಮ ವಿಶೇಷ ದಿನಾಂಕವನ್ನು ತಿಳಿಯಲು ಚಿನ್ನದ ಹೊದಿಕೆಯನ್ನು ಒತ್ತಿ",
+        swipeBottomHint: "ಚಿನ್ನದ ಹೊದಿಕೆಯನ್ನು ಒತ್ತಿ ಅಥವಾ ಸ್ಲೈಡ್ ಮಾಡಿ",
+        revealedBadge: "✨ ಸಂಭ್ರಮದಲ್ಲಿ ಭೇಟಿಯಾಗೋಣ ✨",
         receptionCardTitle: "ಆರತಕ್ಷತೆ",
         receptionCardDate: "ಶನಿವಾರ, 05 ಡಿಸೆಂಬರ್ 2026",
         receptionCardTime: "ಸಂಜೆ 6:30 ರಿಂದ",
@@ -649,9 +658,9 @@ export default function Home() {
         muhurthamCardTime: "ಬೆಳಗ್ಗೆ 8:25 ರಿಂದ 9:25 (ಧನುರ್ ಲಗ್ನ)",
       },
       countdown: {
-        badge: "Counting Down",
-        subline1: "A Lifetime of Togetherness",
-        subline2: "Begins with one sacred step",
+        badge: "ದಿನಗಣನೆ",
+        subline1: "ಶಾಶ್ವತ ಬಾಂಧವ್ಯದ ಸುಂದರ ಪಯಣ",
+        subline2: "ಒಂದು ಪವಿತ್ರ ಹೆಜ್ಜೆಯೊಂದಿಗೆ ಆರಂಭವಾಗುತ್ತದೆ",
         days: "ದಿನಗಳು",
         hours: "ಗಂಟೆಗಳು",
         mins: "ನಿಮಿಷಗಳು",
@@ -659,9 +668,9 @@ export default function Home() {
         addToCalendarBtn: "ಕ್ಯಾಲೆಂಡರ್‌ಗೆ ಸೇರಿಸಿ",
       },
       note: {
-        badge: "A LITTLE NOTE FOR YOU",
-        title: "ನಮ್ಮ ಹೃದಯದಾಳದಿಂದ (From our Hearts)",
-        hook1: "A forever worth celebrating",
+        badge: "ನಿಮಗಾಗಿ ಒಂದು ಪ್ರೀತಿಯ ಸಂದೇಶ",
+        title: "ನಮ್ಮ ಹೃದಯದಾಳದಿಂದ",
+        hook1: "ಜೀವಮಾನವಿಡೀ ಸಂಭ್ರಮಿಸುವ ಸುಂದರ ಬಂಧ",
         hook2: "ಹಾಗೂ ಒಂದು ಸುಂದರ ಪಯಣ ಆರಂಭವಾಗುತ್ತಿದೆ…",
         p1: "ಜೀವನದಲ್ಲಿ ಕೆಲವು ಮಹತ್ವದ ಕ್ಷಣಗಳು ನಮ್ಮ ಸಂಪೂರ್ಣ ಹೃದಯದಿಂದ ಆಚರಿಸಲು ಯೋಗ್ಯವಾಗಿರುತ್ತವೆ. ಕುಟುಂಬಗಳನ್ನು ಹತ್ತಿರ ತರುವ, ಸ್ನೇಹವನ್ನು ಒಂದುಗೂಡಿಸುವ ಮತ್ತು ಮಾತುಗಳಿಗೆ ಮೀರಿದ ಸಂತೋಷವನ್ನು ನೀಡುವ ಕ್ಷಣಗಳಿವು.",
         p2: "ನಮ್ಮ ವಿವಾಹವು ಅಂತಹ ಒಂದು ಪವಿತ್ರ ಕ್ಷಣ — ಪ್ರೀತಿ, ನಂಬಿಕೆ, ಸಂಪ್ರದಾಯ ಮತ್ತು ಜೀವಮಾನದ ಭರವಸೆಯ ಸಂಭ್ರಮ.",
@@ -785,12 +794,30 @@ export default function Home() {
   };
 
   const galleryImages = [
-    { src: "galley1.jpg", title: "Forever in Your Eyes" },
-    { src: "galley3.jpg", title: "Hand in Hand" },
-    { src: "galley4.jpg", title: "Moments of Laughter" },
-    { src: "galley5.jpg", title: "Where Love Resides" },
-    { src: "galley6.jpg", title: "A Sacred Promise" },
-    { src: "galley7.jpg", title: "Together in Every Step" },
+    {
+      src: "gallery-1.jpg",
+      title: lang === "kn" ? "ಕೈಜೋಡಿಸಿ ಜೊತೆಯಾಗಿ" : "Hand in Hand",
+    },
+    {
+      src: "gallery-2.jpg",
+      title: lang === "kn" ? "ಪ್ರೀತಿಯ ನೆಲೆವೀಡು" : "Where Love Resides",
+    },
+    {
+      src: "gallery-3.jpg",
+      title: lang === "kn" ? "ಪ್ರಕೃತಿಯ ಮಡಿಲಲ್ಲಿ" : "Nature’s Embrace",
+    },
+    {
+      src: "gallery-4.jpg",
+      title: lang === "kn" ? "ಜಲಪಾತದ ತೀರದಲ್ಲಿ" : "By the Cascading Waters",
+    },
+    {
+      src: "gallery-5.jpg",
+      title: lang === "kn" ? "ನಗುವಿನ ಮಧುರ ಕ್ಷಣಗಳು" : "Moments of Laughter",
+    },
+    {
+      src: "gallery-6.jpg",
+      title: lang === "kn" ? "ಪ್ರತಿ ಹೆಜ್ಜೆಯಲ್ಲೂ ಜೊತೆಯಾಗಿ" : "Together in Every Step",
+    },
   ];
 
   const nextSlide = () => {
@@ -867,48 +894,45 @@ export default function Home() {
       {/* ─── MAIN SCROLLABLE CONTENT ─── */}
       <main className="w-full">
         {/* ══════════════════════════════════════════════════
-            1. HERO / COVER LANDING SCREEN
+            1. HERO / COVER LANDING SCREEN (Mobile Viewport Optimized)
         ══════════════════════════════════════════════════ */}
         <section
           id="hero"
-          className="relative h-screen w-full flex flex-col justify-between items-center text-center text-white px-6 pt-24 pb-8 overflow-hidden"
+          className="relative h-[100dvh] min-h-[100dvh] w-full flex flex-col justify-between items-center text-center text-white px-4 sm:px-6 pt-16 sm:pt-20 pb-4 sm:pb-6 overflow-hidden"
         >
-          {/* Full-bleed Couple Painting Background - Pure fit to frame, as-is */}
+          {/* Full-bleed Couple Painting Background - Preserves couple on mobile */}
           <div className="absolute inset-0 z-0">
             <Image
               src="/images/harsha-harshitha-widescreen.png"
               alt="Harsha and Harshitha"
               fill
               priority
-              className="object-cover object-center"
+              className="object-cover object-[center_28%] sm:object-center"
             />
             {/* Luminous & Clean Wedding Veil */}
-            <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/80" />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-transparent to-black/85" />
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_45%,rgba(0,0,0,0.55)_100%)]" />
 
             {/* Corner subtle ornamental borders */}
-            <div className="absolute top-6 left-6 w-16 h-16 border-t-2 border-l-2 border-amber-300/40 rounded-tl-xl hidden sm:block pointer-events-none" />
-            <div className="absolute top-6 right-6 w-16 h-16 border-t-2 border-r-2 border-amber-300/40 rounded-tr-xl hidden sm:block pointer-events-none" />
-            <div className="absolute bottom-6 left-6 w-16 h-16 border-b-2 border-l-2 border-amber-300/40 rounded-bl-xl hidden sm:block pointer-events-none" />
-            <div className="absolute bottom-6 right-6 w-16 h-16 border-b-2 border-r-2 border-amber-300/40 rounded-br-xl hidden sm:block pointer-events-none" />
+            <div className="absolute top-5 left-5 w-12 h-12 border-t-2 border-l-2 border-amber-300/40 rounded-tl-xl hidden sm:block pointer-events-none" />
+            <div className="absolute top-5 right-5 w-12 h-12 border-t-2 border-r-2 border-amber-300/40 rounded-tr-xl hidden sm:block pointer-events-none" />
+            <div className="absolute bottom-5 left-5 w-12 h-12 border-b-2 border-l-2 border-amber-300/40 rounded-bl-xl hidden sm:block pointer-events-none" />
+            <div className="absolute bottom-5 right-5 w-12 h-12 border-b-2 border-r-2 border-amber-300/40 rounded-br-xl hidden sm:block pointer-events-none" />
           </div>
 
-          {/* Top Tagline Badge & Couple Hashtag */}
-          <div className="relative z-10 pt-2 flex flex-col items-center gap-1.5">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-black/50 backdrop-blur-md border border-white/25 text-xs md:text-sm tracking-widest uppercase text-amber-200 shadow-xl">
-              <Sparkles size={14} className="text-amber-300" />
+          {/* Top Tagline Badge */}
+          <div className="relative z-10 pt-1 flex flex-col items-center shrink-0">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 sm:px-4 sm:py-1.5 rounded-full bg-black/50 backdrop-blur-md border border-white/25 text-[11px] sm:text-xs md:text-sm tracking-widest uppercase text-amber-200 shadow-xl">
+              <Sparkles size={13} className="text-amber-300" />
               <span>{t.hero.taglineBadge}</span>
             </div>
-            <span className="inline-block px-3 py-0.5 rounded-full bg-[#250E0E]/80 backdrop-blur-sm border border-amber-300/40 text-[#FCE08B] text-[11px] sm:text-xs font-sans font-medium tracking-[0.2em] uppercase shadow">
-              #HARSHSQUARED
-            </span>
           </div>
 
-          {/* CENTER: Quote Lines, Royal Wax Seal & Open Invitation Button - Perfectly Centered */}
-          <div className="relative z-10 max-w-2xl mx-auto flex flex-col items-center text-center my-auto py-6">
+          {/* CENTER: Quote Lines, Royal Wax Seal & Open Invitation Button - Perfectly Centered & Compact on Mobile */}
+          <div className="relative z-10 max-w-2xl mx-auto flex flex-col items-center text-center my-auto py-2 sm:py-4">
             {/* Centered Romantic Quote Lines */}
-            <div className="space-y-1.5 mb-5 px-2">
-              <p className="font-script text-3xl sm:text-4xl md:text-5xl text-amber-50 font-normal tracking-wide max-w-2xl leading-relaxed drop-shadow-[0_2px_14px_rgba(0,0,0,0.95)]">
+            <div className="space-y-1 mb-3 sm:mb-4 px-2">
+              <p className="font-script text-2xl sm:text-4xl md:text-5xl text-amber-50 font-normal tracking-wide max-w-2xl leading-relaxed drop-shadow-[0_2px_14px_rgba(0,0,0,0.95)]">
                 {t.hero.quote1}
               </p>
               <p className="text-xs sm:text-sm md:text-base text-gray-100 font-light tracking-wider drop-shadow-[0_1px_8px_rgba(0,0,0,0.9)]">
@@ -917,7 +941,7 @@ export default function Home() {
             </div>
 
             {/* ROYAL WEDDING WAX SEAL (Custom Symbol) in the EXACT CENTER */}
-            <div className="my-3 relative flex flex-col items-center">
+            <div className="my-2 sm:my-3 relative flex flex-col items-center">
               <button
                 type="button"
                 onClick={openInvitation}
@@ -928,7 +952,7 @@ export default function Home() {
                 <div className="absolute -inset-2 rounded-full bg-gradient-to-r from-[#FCE08B] via-[#E2B755] to-[#D4AF37] opacity-30 blur-md group-hover:opacity-65 transition duration-500" />
 
                 {/* Compact Wax Seal Medallion */}
-                <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-gradient-to-br from-[#3D1414]/95 via-[#230808]/95 to-[#120202]/95 backdrop-blur-md border-2 border-[#E2B755] shadow-[0_0_20px_rgba(226,183,85,0.4)] group-hover:shadow-[0_0_30px_rgba(226,183,85,0.7)] flex flex-col items-center justify-center p-2 transition-all duration-300 transform group-hover:scale-105 active:scale-95">
+                <div className="relative w-20 h-20 sm:w-26 sm:h-26 rounded-full bg-gradient-to-br from-[#3D1414]/95 via-[#230808]/95 to-[#120202]/95 backdrop-blur-md border-2 border-[#E2B755] shadow-[0_0_20px_rgba(226,183,85,0.4)] group-hover:shadow-[0_0_30px_rgba(226,183,85,0.7)] flex flex-col items-center justify-center p-1.5 sm:p-2 transition-all duration-300 transform group-hover:scale-105 active:scale-95">
                   {/* Outer Dotted Ornamental Ring */}
                   <div className="absolute inset-1.5 rounded-full border border-dashed border-[#FCE08B]/45 pointer-events-none" />
                   {/* Inner Fine Ring */}
@@ -936,11 +960,11 @@ export default function Home() {
 
                   {/* Top Tiny Sparkle */}
                   <div className="text-[#FCE08B] mb-0.5 opacity-85 group-hover:scale-110 transition-transform">
-                    <Sparkles size={11} className="text-[#FCE08B]" />
+                    <Sparkles size={10} className="text-[#FCE08B]" />
                   </div>
 
                   {/* Custom Wedding Monogram Symbol (Ultra Crisp Retina Quality) */}
-                  <div className="relative w-[56px] h-[44px] sm:w-[66px] sm:h-[50px] flex items-center justify-center">
+                  <div className="relative w-[48px] h-[38px] sm:w-[60px] sm:h-[46px] flex items-center justify-center">
                     <Image
                       src="/images/wedding-symbol.png"
                       alt="Wedding Monogram"
@@ -955,14 +979,14 @@ export default function Home() {
             </div>
 
             {/* OPEN INVITATION BUTTON */}
-            <div className="mt-4 flex flex-col items-center gap-2">
+            <div className="mt-3 flex flex-col items-center gap-1.5">
               <button
                 type="button"
                 onClick={openInvitation}
-                className="cursor-pointer group relative inline-flex items-center gap-2.5 px-8 py-3.5 rounded-full text-base sm:text-lg font-semibold text-[#250E0E] bg-gradient-to-r from-[#FCE08B] via-[#E2B755] to-[#D4AF37] hover:from-[#FFF2B8] hover:to-[#E2B755] shadow-[0_4px_25px_rgba(226,183,85,0.55)] hover:shadow-[0_6px_35px_rgba(226,183,85,0.85)] transform hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300 border-2 border-amber-200"
+                className="cursor-pointer group relative inline-flex items-center gap-2 px-6 py-2.5 sm:px-8 sm:py-3.5 rounded-full text-sm sm:text-base md:text-lg font-semibold text-[#250E0E] bg-gradient-to-r from-[#FCE08B] via-[#E2B755] to-[#D4AF37] hover:from-[#FFF2B8] hover:to-[#E2B755] shadow-[0_4px_25px_rgba(226,183,85,0.55)] hover:shadow-[0_6px_35px_rgba(226,183,85,0.85)] transform hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300 border-2 border-amber-200"
               >
                 <Heart
-                  size={18}
+                  size={16}
                   className="fill-[#8E6314] text-[#8E6314] group-hover:scale-125 transition-transform"
                 />
                 <span>{t.hero.cta}</span>
@@ -971,16 +995,16 @@ export default function Home() {
               <button
                 type="button"
                 onClick={openInvitation}
-                className="text-xs sm:text-sm text-amber-200/90 hover:text-white flex items-center gap-1.5 transition-colors pt-1 animate-bounce cursor-pointer"
+                className="text-[11px] sm:text-xs text-amber-200/90 hover:text-white flex items-center gap-1 transition-colors pt-0.5 animate-bounce cursor-pointer"
               >
                 <span>{t.hero.stepInto}</span>
-                <ChevronDown size={14} />
+                <ChevronDown size={13} />
               </button>
             </div>
           </div>
 
           {/* Bottom City / Location tag */}
-          <div className="relative z-10 text-xs text-gray-300/80 pb-1">
+          <div className="relative z-10 text-[11px] sm:text-xs text-gray-300/80 pb-1 shrink-0">
             <span>{t.hero.city}</span>
           </div>
         </section>
@@ -1059,7 +1083,7 @@ export default function Home() {
                   {t.invitation.groomsParents}
                 </p>
                 <p className="text-[11px] sm:text-xs uppercase tracking-widest text-neutral-400 font-medium my-0.5">
-                  and
+                  {t.invitation.andSeparator}
                 </p>
                 <p className="font-serif italic text-base sm:text-lg font-semibold text-neutral-900 tracking-wide">
                   {t.invitation.bridesParents}
@@ -1095,7 +1119,13 @@ export default function Home() {
             </span>
 
             {/* Second "Save the Date": same font as bride/groom's name in gold */}
-            <h2 className="font-script text-5xl sm:text-7xl font-normal tracking-wide text-[#A6781D] my-2 drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]">
+            <h2
+              className={`text-[#A6781D] my-2 drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)] ${
+                lang === "kn"
+                  ? "font-serif italic font-bold text-3xl sm:text-5xl"
+                  : "font-script text-5xl sm:text-7xl font-normal tracking-wide"
+              }`}
+            >
               {t.saveTheDate.title}
             </h2>
 
@@ -1144,7 +1174,13 @@ export default function Home() {
 
             {/* A lifetime of togetherness in gold cursive script */}
             <div className="my-4 space-y-1">
-              <p className="font-script text-4xl sm:text-6xl text-[#A6781D] font-normal my-2 drop-shadow-sm">
+              <p
+                className={`text-[#A6781D] my-2 drop-shadow-sm ${
+                  lang === "kn"
+                    ? "font-serif italic font-bold text-2xl sm:text-4xl"
+                    : "font-script text-4xl sm:text-6xl font-normal"
+                }`}
+              >
                 {t.countdown.subline1}
               </p>
               {/* Begins with one sacred step without all-caps, font in line with previous pages */}
@@ -1228,7 +1264,13 @@ export default function Home() {
             </span>
 
             {/* BELOW THAT: From our Hearts in gold script */}
-            <h2 className="font-script text-4xl sm:text-6xl font-normal tracking-wide text-[#A6781D] my-2 drop-shadow-sm">
+            <h2
+              className={`text-[#A6781D] my-2 drop-shadow-sm ${
+                lang === "kn"
+                  ? "font-serif italic font-bold text-2xl sm:text-4xl"
+                  : "font-script text-4xl sm:text-6xl font-normal tracking-wide"
+              }`}
+            >
               {t.note.title}
             </h2>
 
@@ -1240,7 +1282,13 @@ export default function Home() {
               <div className="absolute bottom-5 left-5 w-12 h-12 border-b-2 border-l-2 border-amber-300/40 rounded-bl-xl pointer-events-none" />
               <div className="absolute bottom-5 right-5 w-12 h-12 border-b-2 border-r-2 border-amber-300/40 rounded-br-xl pointer-events-none" />
 
-              <p className="font-script text-3xl sm:text-5xl text-[#A6781D] font-normal leading-tight my-1 drop-shadow-sm">
+              <p
+                className={`text-[#A6781D] leading-tight my-1 drop-shadow-sm ${
+                  lang === "kn"
+                    ? "font-serif italic font-bold text-xl sm:text-3xl"
+                    : "font-script text-3xl sm:text-5xl font-normal"
+                }`}
+              >
                 {t.note.hook1}
               </p>
 
