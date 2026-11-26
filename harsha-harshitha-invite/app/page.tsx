@@ -797,26 +797,32 @@ export default function Home() {
     {
       src: "gallery-1.jpg",
       title: lang === "kn" ? "ಕೈಜೋಡಿಸಿ ಜೊತೆಯಾಗಿ" : "Hand in Hand",
+      position: "object-center",
     },
     {
       src: "gallery-2.jpg",
       title: lang === "kn" ? "ಪ್ರೀತಿಯ ನೆಲೆವೀಡು" : "Where Love Resides",
+      position: "object-[center_15%]",
     },
     {
       src: "gallery-3.jpg",
       title: lang === "kn" ? "ಪ್ರಕೃತಿಯ ಮಡಿಲಲ್ಲಿ" : "Nature’s Embrace",
+      position: "object-[center_85%]",
     },
     {
       src: "gallery-4.jpg",
       title: lang === "kn" ? "ಜಲಪಾತದ ತೀರದಲ್ಲಿ" : "By the Cascading Waters",
+      position: "object-center",
     },
     {
       src: "gallery-5.jpg",
       title: lang === "kn" ? "ನಗುವಿನ ಮಧುರ ಕ್ಷಣಗಳು" : "Moments of Laughter",
+      position: "object-center",
     },
     {
       src: "gallery-6.jpg",
-      title: lang === "kn" ? "ಪ್ರತಿ ಹೆಜ್ಜೆಯಲ್ಲೂ ಜೊತೆಯಾಗಿ" : "Together in Every Step",
+      title: lang === "kn" ? "ಹೊಸ ಜೀವನದ ಹೊಸ್ತಿಲಲ್ಲಿ" : "Stepping Into Tomorrow",
+      position: "object-center",
     },
   ];
 
@@ -894,23 +900,38 @@ export default function Home() {
       {/* ─── MAIN SCROLLABLE CONTENT ─── */}
       <main className="w-full">
         {/* ══════════════════════════════════════════════════
-            1. HERO / COVER LANDING SCREEN (Mobile Viewport Optimized)
+            1. HERO / COVER LANDING SCREEN (Mobile & Desktop Framing)
         ══════════════════════════════════════════════════ */}
         <section
           id="hero"
           className="relative h-[100dvh] min-h-[100dvh] w-full flex flex-col justify-between items-center text-center text-white px-4 sm:px-6 pt-16 sm:pt-20 pb-4 sm:pb-6 overflow-hidden"
         >
-          {/* Full-bleed Couple Painting Background - Preserves couple on mobile */}
+          {/* Responsive Background: Mobile Portrait (shows BOTH Harsha & Harshitha) vs Desktop Widescreen */}
           <div className="absolute inset-0 z-0">
-            <Image
-              src="/images/harsha-harshitha-widescreen.png"
-              alt="Harsha and Harshitha"
-              fill
-              priority
-              className="object-cover object-[center_28%] sm:object-center"
-            />
+            {/* Mobile Portrait (Width < 640px) */}
+            <div className="block sm:hidden absolute inset-0">
+              <Image
+                src="/images/harsha-harshitha-mobile.png"
+                alt="Harsha and Harshitha"
+                fill
+                priority
+                className="object-cover object-[center_32%]"
+              />
+            </div>
+
+            {/* Desktop / Tablet Widescreen (Width >= 640px) */}
+            <div className="hidden sm:block absolute inset-0">
+              <Image
+                src="/images/harsha-harshitha-widescreen.png"
+                alt="Harsha and Harshitha"
+                fill
+                priority
+                className="object-cover object-center"
+              />
+            </div>
+
             {/* Luminous & Clean Wedding Veil */}
-            <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-transparent to-black/85" />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/85" />
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_45%,rgba(0,0,0,0.55)_100%)]" />
 
             {/* Corner subtle ornamental borders */}
@@ -920,28 +941,40 @@ export default function Home() {
             <div className="absolute bottom-5 right-5 w-12 h-12 border-b-2 border-r-2 border-amber-300/40 rounded-br-xl hidden sm:block pointer-events-none" />
           </div>
 
-          {/* Top Tagline Badge */}
-          <div className="relative z-10 pt-1 flex flex-col items-center shrink-0">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1 sm:px-4 sm:py-1.5 rounded-full bg-black/50 backdrop-blur-md border border-white/25 text-[11px] sm:text-xs md:text-sm tracking-widest uppercase text-amber-200 shadow-xl">
+          {/* Top Header Group: Tagline Badge & Romantic Quotes on Mobile */}
+          <div className="relative z-10 pt-1 flex flex-col items-center shrink-0 max-w-xl mx-auto">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 sm:px-4 sm:py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/25 text-[11px] sm:text-xs md:text-sm tracking-widest uppercase text-amber-200 shadow-xl mb-1 sm:mb-0">
               <Sparkles size={13} className="text-amber-300" />
               <span>{t.hero.taglineBadge}</span>
             </div>
-          </div>
 
-          {/* CENTER: Quote Lines, Royal Wax Seal & Open Invitation Button - Perfectly Centered & Compact on Mobile */}
-          <div className="relative z-10 max-w-2xl mx-auto flex flex-col items-center text-center my-auto py-2 sm:py-4">
-            {/* Centered Romantic Quote Lines */}
-            <div className="space-y-1 mb-3 sm:mb-4 px-2">
-              <p className="font-script text-2xl sm:text-4xl md:text-5xl text-amber-50 font-normal tracking-wide max-w-2xl leading-relaxed drop-shadow-[0_2px_14px_rgba(0,0,0,0.95)]">
+            {/* Mobile Quote Lines placed cleanly at the top so couple portrait is unobstructed */}
+            <div className="block sm:hidden text-center px-4 mt-2 space-y-0.5">
+              <p className="font-script text-2xl text-amber-50 leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]">
                 {t.hero.quote1}
               </p>
-              <p className="text-xs sm:text-sm md:text-base text-gray-100 font-light tracking-wider drop-shadow-[0_1px_8px_rgba(0,0,0,0.9)]">
+              <p className="text-[11px] text-gray-100 font-light tracking-wide drop-shadow-[0_1px_6px_rgba(0,0,0,0.9)]">
                 {t.hero.quote2}
               </p>
             </div>
+          </div>
 
-            {/* ROYAL WEDDING WAX SEAL (Custom Symbol) in the EXACT CENTER */}
-            <div className="my-2 sm:my-3 relative flex flex-col items-center">
+          {/* Desktop Center Quote Lines */}
+          <div className="hidden sm:block relative z-10 max-w-2xl mx-auto text-center my-auto py-4">
+            <div className="space-y-1.5 mb-4 px-2">
+              <p className="font-script text-4xl md:text-5xl text-amber-50 font-normal tracking-wide max-w-2xl leading-relaxed drop-shadow-[0_2px_14px_rgba(0,0,0,0.95)]">
+                {t.hero.quote1}
+              </p>
+              <p className="text-sm md:text-base text-gray-100 font-light tracking-wider drop-shadow-[0_1px_8px_rgba(0,0,0,0.9)]">
+                {t.hero.quote2}
+              </p>
+            </div>
+          </div>
+
+          {/* Bottom Action Area: Royal Wax Seal & Open Invitation Button */}
+          <div className="relative z-10 w-full max-w-md mx-auto flex flex-col items-center text-center pb-2 sm:pb-4 shrink-0">
+            {/* ROYAL WEDDING WAX SEAL (Custom Symbol) */}
+            <div className="mb-2 sm:mb-3 relative flex flex-col items-center">
               <button
                 type="button"
                 onClick={openInvitation}
@@ -951,20 +984,14 @@ export default function Home() {
                 {/* Outer Glow Halo */}
                 <div className="absolute -inset-2 rounded-full bg-gradient-to-r from-[#FCE08B] via-[#E2B755] to-[#D4AF37] opacity-30 blur-md group-hover:opacity-65 transition duration-500" />
 
-                {/* Compact Wax Seal Medallion */}
-                <div className="relative w-20 h-20 sm:w-26 sm:h-26 rounded-full bg-gradient-to-br from-[#3D1414]/95 via-[#230808]/95 to-[#120202]/95 backdrop-blur-md border-2 border-[#E2B755] shadow-[0_0_20px_rgba(226,183,85,0.4)] group-hover:shadow-[0_0_30px_rgba(226,183,85,0.7)] flex flex-col items-center justify-center p-1.5 sm:p-2 transition-all duration-300 transform group-hover:scale-105 active:scale-95">
-                  {/* Outer Dotted Ornamental Ring */}
+                {/* Wax Seal Medallion */}
+                <div className="relative w-18 h-18 sm:w-26 sm:h-26 rounded-full bg-gradient-to-br from-[#3D1414]/95 via-[#230808]/95 to-[#120202]/95 backdrop-blur-md border-2 border-[#E2B755] shadow-[0_0_20px_rgba(226,183,85,0.4)] group-hover:shadow-[0_0_30px_rgba(226,183,85,0.7)] flex flex-col items-center justify-center p-1.5 sm:p-2 transition-all duration-300 transform group-hover:scale-105 active:scale-95">
                   <div className="absolute inset-1.5 rounded-full border border-dashed border-[#FCE08B]/45 pointer-events-none" />
-                  {/* Inner Fine Ring */}
                   <div className="absolute inset-3 rounded-full border border-[#E2B755]/25 pointer-events-none" />
-
-                  {/* Top Tiny Sparkle */}
                   <div className="text-[#FCE08B] mb-0.5 opacity-85 group-hover:scale-110 transition-transform">
                     <Sparkles size={10} className="text-[#FCE08B]" />
                   </div>
-
-                  {/* Custom Wedding Monogram Symbol (Ultra Crisp Retina Quality) */}
-                  <div className="relative w-[48px] h-[38px] sm:w-[60px] sm:h-[46px] flex items-center justify-center">
+                  <div className="relative w-[44px] h-[34px] sm:w-[60px] sm:h-[46px] flex items-center justify-center">
                     <Image
                       src="/images/wedding-symbol.png"
                       alt="Wedding Monogram"
@@ -979,11 +1006,11 @@ export default function Home() {
             </div>
 
             {/* OPEN INVITATION BUTTON */}
-            <div className="mt-3 flex flex-col items-center gap-1.5">
+            <div className="flex flex-col items-center gap-1.5">
               <button
                 type="button"
                 onClick={openInvitation}
-                className="cursor-pointer group relative inline-flex items-center gap-2 px-6 py-2.5 sm:px-8 sm:py-3.5 rounded-full text-sm sm:text-base md:text-lg font-semibold text-[#250E0E] bg-gradient-to-r from-[#FCE08B] via-[#E2B755] to-[#D4AF37] hover:from-[#FFF2B8] hover:to-[#E2B755] shadow-[0_4px_25px_rgba(226,183,85,0.55)] hover:shadow-[0_6px_35px_rgba(226,183,85,0.85)] transform hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300 border-2 border-amber-200"
+                className="cursor-pointer group relative inline-flex items-center gap-2 px-7 py-2.5 sm:px-8 sm:py-3.5 rounded-full text-sm sm:text-base md:text-lg font-semibold text-[#250E0E] bg-gradient-to-r from-[#FCE08B] via-[#E2B755] to-[#D4AF37] hover:from-[#FFF2B8] hover:to-[#E2B755] shadow-[0_4px_25px_rgba(226,183,85,0.55)] hover:shadow-[0_6px_35px_rgba(226,183,85,0.85)] transform hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300 border-2 border-amber-200"
               >
                 <Heart
                   size={16}
@@ -1001,11 +1028,11 @@ export default function Home() {
                 <ChevronDown size={13} />
               </button>
             </div>
-          </div>
 
-          {/* Bottom City / Location tag */}
-          <div className="relative z-10 text-[11px] sm:text-xs text-gray-300/80 pb-1 shrink-0">
-            <span>{t.hero.city}</span>
+            {/* Bottom City / Location tag */}
+            <div className="text-[10px] sm:text-xs text-gray-300/80 pt-1">
+              <span>{t.hero.city}</span>
+            </div>
           </div>
         </section>
 
@@ -1356,20 +1383,8 @@ export default function Home() {
                 onClick={() => setSelectedPhoto(galleryImages[activeSlide].src)}
                 className="group relative bg-white/95 rounded-3xl p-3 sm:p-5 shadow-[0_20px_50px_rgba(201,147,43,0.18)] border-2 border-[#E2C799]/50 hover:border-[#D4AF37] transition-all duration-500 cursor-pointer overflow-hidden select-none"
               >
-                {/* Natural Photo Frame - Pure Fit With Zero Cropping */}
-                <div className="relative h-[380px] sm:h-[480px] md:h-[520px] w-full rounded-2xl overflow-hidden bg-[#180A0A] flex items-center justify-center border border-amber-900/10">
-                  {/* Ambient Soft Blurred Glow of Photo Behind */}
-                  <div className="absolute inset-0 scale-110 blur-2xl opacity-40 pointer-events-none">
-                    <Image
-                      key={`bg-${activeSlide}`}
-                      src={`/images/${galleryImages[activeSlide].src}`}
-                      alt=""
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-
-                  {/* Main Photo - 100% Fit to Frame with Zero Cropping */}
+                {/* Full-Frame Photo Container */}
+                <div className="relative aspect-[3/4] sm:aspect-[2/3] max-h-[580px] w-full rounded-2xl overflow-hidden bg-[#180A0A] flex items-center justify-center border border-amber-900/10 shadow-inner">
                   <Image
                     key={activeSlide}
                     src={`/images/${galleryImages[activeSlide].src}`}
@@ -1377,10 +1392,10 @@ export default function Home() {
                     fill
                     priority
                     sizes="(max-width: 768px) 100vw, 680px"
-                    className="object-contain object-center relative z-10 transition-all duration-500 drop-shadow-md"
+                    className={`object-cover ${galleryImages[activeSlide].position || "object-center"} w-full h-full transition-all duration-700 ease-out group-hover:scale-103`}
                   />
                   {/* Subtle ambient bottom gradient */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none z-10" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent pointer-events-none" />
                 </div>
 
                 {/* Natural Caption & Counter */}
