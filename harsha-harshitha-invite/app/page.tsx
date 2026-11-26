@@ -406,15 +406,56 @@ export default function Home() {
     return () => clearInterval(interval);
   }, []);
 
-  // Hydrate Wishes from LocalStorage asynchronously
+  // Hydrate Wishes from Cloud Database with LocalStorage Fallback
   useEffect(() => {
+    let isCancelled = false;
+
+    // 1. First fetch real-time cloud wishes
+    fetch("/api/wishes")
+      .then((res) => res.json())
+      .then((data) => {
+        if (!isCancelled && data.isCloud && Array.isArray(data.wishes) && data.wishes.length > 0) {
+          const cloudFormatted: WishItem[] = data.wishes.map((w: {
+            id: string;
+            name: string;
+            relation: string;
+            tag: string;
+            message: string;
+            likes?: number;
+          }) => ({
+            id: w.id,
+            name: w.name,
+            relation: w.relation,
+            tag: w.tag,
+            message: w.message,
+            likes: w.likes ?? 1,
+            createdAt: lang === "kn" ? "ಈಗಷ್ಟೇ" : "Recently",
+            isCustom: true,
+          }));
+
+          setWishesList((prev) => {
+            const cloudIds = new Set(cloudFormatted.map((f) => f.id));
+            const nonDuplicatePresets = prev.filter((p) => !cloudIds.has(p.id) && !p.isCustom);
+            return [...cloudFormatted, ...nonDuplicatePresets];
+          });
+        }
+      })
+      .catch(() => {
+        // Fall back to localStorage below
+      });
+
+    // 2. Hydrate from localStorage for offline / preset support
     const timer = setTimeout(() => {
       try {
         const savedWishes = localStorage.getItem("harsha_harshitha_wishes");
         if (savedWishes) {
           const parsedWishes = JSON.parse(savedWishes);
           if (Array.isArray(parsedWishes) && parsedWishes.length > 0) {
-            setWishesList(parsedWishes);
+            setWishesList((prev) => {
+              // Only overwrite if cloud hasn't populated yet
+              if (prev.some((p) => p.isCustom)) return prev;
+              return parsedWishes;
+            });
           }
         }
         const savedLikes = localStorage.getItem("harsha_harshitha_liked_wishes");
@@ -426,8 +467,11 @@ export default function Home() {
       }
     }, 0);
 
-    return () => clearTimeout(timer);
-  }, []);
+    return () => {
+      isCancelled = true;
+      clearTimeout(timer);
+    };
+  }, [lang]);
 
   const toggleLang = (e?: React.MouseEvent) => {
     if (e) {
@@ -768,6 +812,29 @@ export default function Home() {
     } catch {
       // Ignore
     }
+
+    // Asynchronously sync new wish to Cloud Database
+    fetch("/api/wishes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: newWish.name,
+        relation: newWish.relation,
+        tag: newWish.tag,
+        message: newWish.message,
+      }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.wish?.id) {
+          setWishesList((current) =>
+            current.map((w) =>
+              w.id === newWish.id ? { ...w, id: data.wish.id } : w
+            )
+          );
+        }
+      })
+      .catch(() => {});
   };
 
   const handleToggleLikeWish = (wishId: string) => {
@@ -791,6 +858,16 @@ export default function Home() {
     } catch {
       // Ignore
     }
+
+    // Asynchronously sync like update to Cloud Database
+    fetch("/api/wishes", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: wishId,
+        increment: !isLiked,
+      }),
+    }).catch(() => {});
   };
 
   const galleryImages = [
