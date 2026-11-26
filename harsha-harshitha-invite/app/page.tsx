@@ -372,6 +372,7 @@ export default function Home() {
 
   // Wishes Wall State
   const [wishesList, setWishesList] = useState<WishItem[]>(initialWishes);
+  const [showAllWishes, setShowAllWishes] = useState(false);
   const [newWishName, setNewWishName] = useState("");
   const [newWishRelation, setNewWishRelation] = useState("");
   const [newWishTag, setNewWishTag] = useState("");
@@ -547,7 +548,7 @@ export default function Home() {
       },
       hero: {
         taglineBadge: "A Love Story Begins...",
-        quote1: "This is start of something beautiful...!",
+        quote1: "This is the start of something beautiful...!",
         quote2: "Join us as we celebrate a journey written by destiny.",
         cta: "Open Our Invitation",
         stepInto: "Step into their forever ↓",
@@ -614,7 +615,7 @@ export default function Home() {
       venue: {
         badge: "THE VENUE",
         title: "Wedding Venue & Directions",
-        subtitle: "We look forward to welcoming you with warm hearts",
+        subtitle: "We look forward to welcome you with warm hearts",
         venueName: "S.V. Convention Centre",
         addressLine1: "No. 37/1, NICE Road Junction, Kanakapura Main Road,",
         addressLine2: "Behind KSSRDI, Talaghattapura, Bengaluru - 560109",
@@ -653,7 +654,7 @@ export default function Home() {
       },
       footer: {
         couple: "Harsha ♥ Harshitha",
-        subtext: "We eagerly look forward to celebrating with you!",
+        subtext: "We are eagerly looking forward to celebrate with you!",
       },
     },
     kn: {
@@ -1749,9 +1750,9 @@ export default function Home() {
               </form>
             </div>
 
-            {/* Wishes Grid */}
+            {/* Wishes Grid (Latest 6 by default) */}
             <div className="grid md:grid-cols-2 gap-6">
-              {wishesList.map((wish) => {
+              {(showAllWishes ? wishesList : wishesList.slice(0, 6)).map((wish) => {
                 const isLiked = likedWishIds.includes(wish.id);
                 return (
                   <div
@@ -1809,6 +1810,25 @@ export default function Home() {
                 );
               })}
             </div>
+
+            {/* View More Wishes Expand Button */}
+            {wishesList.length > 6 && (
+              <div className="mt-8 flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => setShowAllWishes((prev) => !prev)}
+                  className="group inline-flex items-center gap-2 px-7 py-3 rounded-full bg-white text-[#250E0E] border-2 border-[#E2C799] shadow-md hover:shadow-lg hover:border-[#D4AF37] hover:bg-amber-50/50 transition-all duration-300 text-xs sm:text-sm font-semibold cursor-pointer transform hover:-translate-y-0.5"
+                >
+                  <span>
+                    {showAllWishes
+                      ? (lang === "kn" ? "ಕಡಿಮೆ ವೀಕ್ಷಿಸಿ ↑" : "Show Less ↑")
+                      : (lang === "kn"
+                          ? `ಇನ್ನಷ್ಟು ಹಾರೈಕೆಗಳನ್ನು ವೀಕ್ಷಿಸಿ (${wishesList.length - 6}) ↓`
+                          : `View More Wishes (${wishesList.length - 6}) ↓`)}
+                  </span>
+                </button>
+              </div>
+            )}
           </div>
         </section>
       </main>
