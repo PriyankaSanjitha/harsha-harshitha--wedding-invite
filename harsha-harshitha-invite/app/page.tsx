@@ -879,7 +879,7 @@ export default function Home() {
     {
       src: "gallery-2.jpg",
       title: lang === "kn" ? "ಪ್ರೀತಿಯ ನೆಲೆವೀಡು" : "Where Love Resides",
-      position: "object-[center_15%]",
+      position: "object-center",
     },
     {
       src: "gallery-3.jpg",
